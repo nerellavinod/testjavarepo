@@ -1,7 +1,7 @@
 trigger:
 - main
 
-pool: Mare Nectaris
+pool: default
 
 variables:
   azureSubscription: 'bicep-serviceconnetion-temp'   # Updated to your new service connection
