@@ -1,8 +1,7 @@
 trigger:
 - main
 
-pool: 
-  #name : Default
+pool:
   vmImage: 'ubuntu-latest'
 
 variables:
@@ -32,7 +31,6 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      azd upgrade
       azd config set default-location $(location)
       azd up --no-prompt --environment $(environment)
     workingDirectory: '$(Build.SourcesDirectory)'
