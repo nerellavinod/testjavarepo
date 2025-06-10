@@ -1,7 +1,9 @@
 trigger:
 - main
 
-pool: default
+pool: 
+  name : Default
+  vmImage: 'ubuntu-latest'
 
 variables:
   azureSubscription: 'bicep-serviceconnetion-temp'   # Updated to your new service connection
