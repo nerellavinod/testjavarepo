@@ -1,0 +1,36 @@
+trigger:
+- main
+
+pool: Mare Nectaris
+
+variables:
+  azureSubscription: 'bicep-serviceconnetion-temp'   # Updated to your new service connection
+  environment: 'dev'
+  location: 'uksouth'
+
+steps:
+- checkout: self
+  clean: true
+
+- task: UseDotNet@2
+  displayName: 'Install .NET 9 SDK'
+  inputs:
+    packageType: 'sdk'
+    version: '9.x'
+
+- script: |
+    curl -fsSL https://aka.ms/install-azd.sh | bash
+    echo "azd installed successfully"
+  displayName: 'Install Azure Developer CLI (azd)'
+
+- task: AzureCLI@2
+  displayName: 'Deploy with azd up (Bicep)'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      azd upgrade
+      azd config set default-location $(location)
+      azd up --no-prompt --environment $(environment)
+    workingDirectory: '$(Build.SourcesDirectory)'
