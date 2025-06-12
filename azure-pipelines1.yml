@@ -7,7 +7,7 @@ pool:
 variables:
   azureSubscription: 'bicep-serviceconnetion-temp'   # Updated to your new service connection
   environment: 'dev'
-  location: 'uksouth' # commented added to yml to test 
+  location: 'uksouth'
 
 steps:
 - checkout: self
@@ -21,6 +21,7 @@ steps:
 
 - script: |
     curl -fsSL https://aka.ms/install-azd.sh | bash
+    azd config set auth.useAzCliAuth "true"
     echo "azd installed successfully"
   displayName: 'Install Azure Developer CLI (azd)'
 
