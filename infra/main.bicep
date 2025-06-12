@@ -36,6 +36,7 @@ module resources 'resources.bicep' = {
     tags: tags
     principalId: principalId
     acrName: acrName
+    environmentName: environmentName 
   }
 }
 
