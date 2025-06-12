@@ -12,7 +12,7 @@
       "value": "${AZURE_LOCATION}"
     },
     "acrName": {
-      "value": "mycustomacrnamevitn"
+      "value": "mycustomacrnamevinn"
     }
   }
 } 
