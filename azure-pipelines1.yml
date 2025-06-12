@@ -7,7 +7,7 @@ pool:
 variables:
   azureSubscription: 'bicep-serviceconnetion-temp'   # Updated to your new service connection
   environment: 'dev'
-  location: 'uksouth'
+  location: 'uksouth' # commented added to yml to test 
 
 steps:
 - checkout: self
