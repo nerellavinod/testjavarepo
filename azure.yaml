@@ -4,14 +4,6 @@ services:
     project: ./src/AppHost
     language: dotnet
     host: containerapp
-  web:
-    project: ./src/Web
-    language: dotnet
-    host: containerapp
-  api:
-    project: ./src/ApiService
-    language: dotnet
-    host: containerapp
+
 infra:
   path: ./infra
-
