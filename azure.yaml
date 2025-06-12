@@ -1,9 +1,17 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
-
-name: demo-aspire-project
-subscription: "c3d246d3-988a-45ae-ba70-f7faac1e2d0a"
-services:  
+name: testjavarepo
+services:
   app:
+    project: ./src/AppHost
     language: dotnet
-    project: ./DemoAspireProject.AppHost/DemoAspireProject.AppHost.csproj
     host: containerapp
+  web:
+    project: ./src/Web
+    language: dotnet
+    host: containerapp
+  api:
+    project: ./src/ApiService
+    language: dotnet
+    host: containerapp
+infra:
+  path: ./infra
+
