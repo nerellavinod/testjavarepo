@@ -5,9 +5,10 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureSubscription: 'bicep-serviceconnetion-temp'   # Updated to your new service connection
+  azureSubscription: 'bicep-serviceconnetion-temp'   # Your Azure DevOps service connection name
   environment: 'dev'
-  location: 'uksouth' # commented added to yml to test 
+  location: 'uksouth'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'  # Replace with your actual subscription ID
 
 steps:
 - checkout: self
@@ -31,6 +32,22 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
+      set -e
+
+      echo "Setting Azure subscription explicitly..."
+      az account set --subscription $(AZURE_SUBSCRIPTION_ID)
+
+      echo "Configuring azd to use Azure CLI authentication..."
+      azd config set auth.useAzCliAuth "true"
+
+      echo "Setting default deployment location to: $(location)"
       azd config set default-location $(location)
+
+      echo "Running azd up..."
       azd up --no-prompt --environment $(environment)
     workingDirectory: '$(Build.SourcesDirectory)'
+  env:
+    AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
+    AZURE_ENV_NAME: $(environment)
+    AZURE_LOCATION: $(location)
+    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)

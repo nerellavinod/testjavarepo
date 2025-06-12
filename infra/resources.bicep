@@ -1,11 +1,16 @@
+@description('Custom name for the Azure Container Registry. Must be globally unique and 5-50 alphanumeric characters.')
+@minLength(2)
+@maxLength(50)
+param acrName string
+
 @description('The location used for all deployed resources')
 param location string = resourceGroup().location
-@description('Id of the user or app to assign application roles')
-param principalId string = ''
-
 
 @description('Tags that will be applied to all resources')
 param tags object = {}
+
+@description('Id of the user or app to assign application roles')
+param principalId string
 
 var resourceToken = uniqueString(resourceGroup().id)
 
@@ -16,7 +21,8 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
 }
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
-  name: replace('acr-${resourceToken}', '-', '')
+  
+  name: empty(acrName) ? replace('acr-${resourceToken}', '-', '') : acrName
   location: location
   sku: {
     name: 'Basic'

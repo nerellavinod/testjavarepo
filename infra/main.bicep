@@ -1,17 +1,23 @@
 targetScope = 'subscription'
 
+
+@minLength(2)
+@maxLength(50)
+@description('Custom name for the Azure Container Registry. Must be globally unique and 5-50 alphanumeric characters.')
+param acrName string
+
+
 @minLength(1)
 @maxLength(64)
 @description('Name of the environment that can be used as part of naming resource convention, the name of the resource group for your application will use this name, prefixed with rg-')
 param environmentName string
 
+@description('Id of the user or app to assign application roles')
+param principalId string
+
 @minLength(1)
 @description('The location used for all deployed resources')
 param location string
-
-@description('Id of the user or app to assign application roles')
-param principalId string = ''
-
 
 var tags = {
   'azd-env-name': environmentName
@@ -29,6 +35,7 @@ module resources 'resources.bicep' = {
     location: location
     tags: tags
     principalId: principalId
+    acrName: acrName
   }
 }
 
