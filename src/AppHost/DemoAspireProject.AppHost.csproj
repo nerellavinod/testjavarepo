@@ -12,8 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DemoAspireProject.ApiService\DemoAspireProject.ApiService.csproj" />
-    <ProjectReference Include="..\DemoAspireProject.Web\DemoAspireProject.Web.csproj" />
+	<ProjectReference Include="..\ApiService\DemoAspireProject.ApiService.csproj" />
+	<ProjectReference Include="..\Web\DemoAspireProject.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>
