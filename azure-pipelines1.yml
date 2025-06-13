@@ -49,8 +49,11 @@ steps:
       echo "Running azd init with force..."
       azd init --no-prompt --environment $(environment)
 
+      echo "Copying parameters.json into environment folder..."
+      cp infra/parameters.json .azure/$(environment)/parameters.json
+
       echo "Provisioning Azure infrastructure..."
-      azd provision --no-prompt --environment $(environment) --parameters @infra/parameters.json
+      azd provision --no-prompt --environment $(environment)
 
       echo "Deploying Aspire application..."
       azd deploy --no-prompt --environment $(environment)      
