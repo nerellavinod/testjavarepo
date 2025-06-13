@@ -55,10 +55,9 @@ steps:
       cp infra/parameters.json .azure/$(environment)/main.parameters.json
 
       echo "Verifying parameters:"
-      cat .azure/$(environment)/main.parameters.json
-
-      echo "Setting environment variable for acrName..."
-      export ACR_NAME=$(acrName)
+      cat .azure/$(environment)/main.parameters.json    
+            
+      echo "acrName=$(acrName)" >> .env 
 
       echo "Provisioning Azure infrastructure..."
       azd provision --no-prompt --environment $(environment)
