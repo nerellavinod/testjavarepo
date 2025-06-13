@@ -47,7 +47,7 @@ steps:
       azd config set infra.path ./infra
 
       echo "Running azd init with force..."
-      azd init --no-prompt --force --environment $(environment) --template ./
+      azd init --no-prompt --environment $(environment)
 
       echo "Running azd up..."
       azd up --no-prompt --environment $(environment)
