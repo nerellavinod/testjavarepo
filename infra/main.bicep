@@ -28,7 +28,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   location: location
   tags: tags
 }
-module resources 'resources.bicep' = {
+module resources 'modules/environment.bicep' = {
   scope: rg
   name: 'resources'
   params: {
