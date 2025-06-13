@@ -5,10 +5,10 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureSubscription: 'bicep-serviceconnetion-temp'   # Your Azure DevOps service connection name
+  azureSubscription: 'bicep-serviceconnetion-temp'   # Azure DevOps service connection name
   environment: 'dev'
   location: 'uksouth'
-  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'  # Replace with your actual subscription ID
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'  # Optional (not used now)
 
 steps:
 - checkout: self
@@ -23,13 +23,12 @@ steps:
 - script: |
     set -e
 
-    echo "Setting Azure subscription..."
-    az account set --subscription $(AZURE_SUBSCRIPTION_ID)
+    echo " Azure subscription is already set via AzureCLI@2 service connection."
 
-    echo "Installing Azure Developer CLI..."
+    echo " Installing Azure Developer CLI..."
     curl -fsSL https://aka.ms/install-azd.sh | bash
 
-    echo "Configuring azd to use Azure CLI authentication..."
+    echo " Configuring azd to use Azure CLI authentication..."
     azd config set auth.useAzCliAuth "true"
 
     echo "Setting default deployment location to: $(location)"
@@ -45,7 +44,7 @@ steps:
     mkdir -p .azure/$(environment)
     cp infra/parameters.json .azure/$(environment)/main.parameters.json
 
-    echo "Verifying parameter file:"
+    echo "Previewing parameter file:"
     cat .azure/$(environment)/main.parameters.json
 
     echo "Provisioning Azure resources..."
@@ -59,4 +58,3 @@ steps:
     AZURE_PRINCIPAL_ID: '350a0541-d3a0-4e6b-9af5-49254f7cd488'
     AZURE_ENV_NAME: $(environment)
     AZURE_LOCATION: $(location)
-    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
