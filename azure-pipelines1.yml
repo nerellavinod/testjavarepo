@@ -52,6 +52,9 @@ steps:
       azd env delete --yes --environment $(environment) || true
       rm -rf .azure/$(environment)
 
+      echo " check version"
+      azd version
+
       echo "Running azd init with force..."
       azd init --no-prompt --environment $(environment)
 
@@ -65,7 +68,7 @@ steps:
       azd env get-values --environment $(environment)
 
       echo "Provisioning Azure infrastructure..."
-      azd provision --no-prompt --environment $(environment)
+      azd provision --no-prompt 
 
       echo "Deploying Aspire application..."
       azd deploy --no-prompt --environment $(environment)      
@@ -74,5 +77,4 @@ steps:
     AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
     AZURE_ENV_NAME: $(environment)
     AZURE_LOCATION: $(location)
-    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
-    acrName: $(acrName)
+    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)  
