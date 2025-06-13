@@ -54,10 +54,14 @@ steps:
       mkdir -p .azure/$(environment)
       cp infra/parameters.json .azure/$(environment)/main.parameters.json
 
-      echo "Verifying parameters:"
-      cat .azure/$(environment)/main.parameters.json    
-            
-      echo "acrName=$(acrName)" >> .env 
+      echo "Writing .env file for azd parameter injection..."
+      echo "acrName=$(acrName)" > .azure/$(environment)/.env
+      echo "environmentName=$(environment)" >> .azure/$(environment)/.env
+      echo "location=$(location)" >> .azure/$(environment)/.env
+      echo "principalId=$(AZURE_PRINCIPAL_ID)" >> .azure/$(environment)/.env
+
+      echo "Verifying .env file:"
+      cat .azure/$(environment)/.env 
 
       echo "Provisioning Azure infrastructure..."
       azd provision --no-prompt --environment $(environment)
@@ -69,5 +73,4 @@ steps:
     AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
     AZURE_ENV_NAME: $(environment)
     AZURE_LOCATION: $(location)
-    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
-    ACR_NAME: $(acrName) 
+    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)   
