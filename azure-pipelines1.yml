@@ -8,6 +8,7 @@ variables:
   azureSubscription: 'bicep-serviceconnetion-temp'   # Your Azure DevOps service connection name
   environment: 'dev'
   location: 'uksouth'
+  acrName: 'mycustomacrnamevinn'
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'  # Replace with your actual subscription ID
 
 steps:
@@ -56,6 +57,9 @@ steps:
       echo "Verifying parameters:"
       cat .azure/$(environment)/main.parameters.json
 
+      echo "Setting environment variable for acrName..."
+      export ACR_NAME=$(acrName)
+
       echo "Provisioning Azure infrastructure..."
       azd provision --no-prompt --environment $(environment)
 
@@ -67,3 +71,4 @@ steps:
     AZURE_ENV_NAME: $(environment)
     AZURE_LOCATION: $(location)
     AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+    ACR_NAME: $(acrName) 
