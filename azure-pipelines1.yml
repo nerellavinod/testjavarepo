@@ -57,6 +57,9 @@ steps:
       azd env set location "$(location)" --environment $(environment)
       azd env set principalId "$(AZURE_PRINCIPAL_ID)" --environment $(environment)
 
+      echo "Dumping azd environment values:"
+      azd env get-values --environment $(environment)
+
       echo "Provisioning Azure infrastructure..."
       azd provision --no-prompt --environment $(environment)
 
