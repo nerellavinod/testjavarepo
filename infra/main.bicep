@@ -1,11 +1,9 @@
 targetScope = 'subscription'
 
-
 @minLength(2)
 @maxLength(50)
 @description('Custom name for the Azure Container Registry. Must be globally unique and 5-50 alphanumeric characters.')
-param acrName string = 'mycustomacrnamevinn'
-
+param acrName string
 
 @minLength(1)
 @maxLength(64)
@@ -28,6 +26,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
   location: location
   tags: tags
 }
+
 module resources 'modules/environment.bicep' = {
   scope: rg
   name: 'resources'
@@ -36,10 +35,9 @@ module resources 'modules/environment.bicep' = {
     tags: tags
     principalId: principalId
     acrName: acrName
-    environmentName: environmentName 
+    environmentName: environmentName
   }
 }
-
 
 output MANAGED_IDENTITY_CLIENT_ID string = resources.outputs.MANAGED_IDENTITY_CLIENT_ID
 output MANAGED_IDENTITY_NAME string = resources.outputs.MANAGED_IDENTITY_NAME

@@ -2,18 +2,17 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "principalId": {
-      "value": "350a0541-d3a0-4e6b-9af5-49254f7cd488"
+    "acrName": {
+      "value": "mycustomacrnamevinn"
     },
     "environmentName": {
       "value": "dev"
     },
+    "principalId": {
+      "value": "350a0541-d3a0-4e6b-9af5-49254f7cd488"
+    },
     "location": {
       "value": "uksouth"
-    },
-    "acrName": {
-      "value": "mycustomacrnamevinn"
     }
   }
-} 
-  
+}
