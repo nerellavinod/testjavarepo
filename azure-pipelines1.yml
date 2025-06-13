@@ -51,20 +51,11 @@ steps:
       echo "Running azd init with force..."
       azd init --no-prompt --environment $(environment)
 
-      echo "Copying parameters.json into environment folder..."
-      mkdir -p .azure/$(environment)
-      cp infra/parameters.json .azure/$(environment)/main.parameters.json
-
-      echo "Writing .env file for azd parameter injection..."
-      echo "acrName=$(acrName)" > .azure/$(environment)/.env
-      echo "environmentName=$(environment)" >> .azure/$(environment)/.env
-      echo "location=$(location)" >> .azure/$(environment)/.env
-      echo "principalId=$(AZURE_PRINCIPAL_ID)" >> .azure/$(environment)/.env
-
-      echo "Verifying .env file:"
-      cat .azure/$(environment)/.env 
-
-      cp .azure/$(environment)/.env .env
+      echo "Setting azd environment parameters..."
+      azd env set acrName "$(acrName)" --environment $(environment)
+      azd env set environmentName "$(environment)" --environment $(environment)
+      azd env set location "$(location)" --environment $(environment)
+      azd env set principalId "$(AZURE_PRINCIPAL_ID)" --environment $(environment)
 
       echo "Provisioning Azure infrastructure..."
       azd provision --no-prompt --environment $(environment)
