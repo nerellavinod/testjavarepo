@@ -5,10 +5,9 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureSubscription: 'bicep-serviceconnetion-temp'   # Azure DevOps service connection name
+  azureSubscription: 'bicep-serviceconnetion-temp'   # Your Azure DevOps service connection name
   environment: 'dev'
   location: 'uksouth'
-  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'  # Optional (not used now)
 
 steps:
 - checkout: self
@@ -21,40 +20,43 @@ steps:
     version: '9.x'
 
 - script: |
-    set -e
-
-    echo " Azure subscription is already set via AzureCLI@2 service connection."
-
-    echo " Installing Azure Developer CLI..."
+    echo "Installing Azure Developer CLI..."
     curl -fsSL https://aka.ms/install-azd.sh | bash
+    echo "azd installed successfully"
+  displayName: 'Install Azure Developer CLI (azd)'
 
-    echo " Configuring azd to use Azure CLI authentication..."
-    azd config set auth.useAzCliAuth "true"
+- task: AzureCLI@2
+  displayName: 'Provision + Deploy using azd'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      set -e
 
-    echo "Setting default deployment location to: $(location)"
-    azd config set default-location $(location)
+      echo "configuring azd to use Azure CLI authentication..."
+      azd config set auth.useAzCliAuth "true"
 
-    echo "Setting infra path to ./infra"
-    azd config set infra.path ./infra
+      echo "Setting default location to: $(location)"
+      azd config set default-location $(location)
 
-    echo "Running azd init..."
-    azd init --no-prompt --environment $(environment)
+      echo "Setting infra path to ./infra"
+      azd config set infra.path ./infra
 
-    echo "Copying parameter file to .azure/$(environment)/main.parameters.json"
-    mkdir -p .azure/$(environment)
-    cp infra/parameters.json .azure/$(environment)/main.parameters.json
+      echo "running azd init..."
+      azd init --no-prompt --environment $(environment)
 
-    echo "Previewing parameter file:"
-    cat .azure/$(environment)/main.parameters.json
+      echo "Copying parameters file..."
+      mkdir -p .azure/$(environment)
+      cp infra/parameters.json .azure/$(environment)/main.parameters.json
 
-    echo "Provisioning Azure resources..."
-    azd provision --no-prompt --environment $(environment)
+      echo "Verifying parameters:"
+      cat .azure/$(environment)/main.parameters.json
 
-    echo "Deploying Aspire app..."
-    azd deploy --no-prompt --environment $(environment)
+      echo "Provisioning infrastructure..."
+      azd provision --no-prompt --environment $(environment)
 
-  displayName: 'Run azd CLI end-to-end'
-  env:
-    AZURE_PRINCIPAL_ID: '350a0541-d3a0-4e6b-9af5-49254f7cd488'
-    AZURE_ENV_NAME: $(environment)
-    AZURE_LOCATION: $(location)
+      echo "Deploying Aspire app..."
+      azd deploy --no-prompt --environment $(environment)
+
+    workingDirectory: '$(Build.SourcesDirectory)'
