@@ -46,8 +46,8 @@ steps:
       echo "Setting infra path explicitly to ./infra"
       azd config set infra.path ./infra
 
-      echo "Running azd init..."
-      azd init --no-prompt --environment $(environment) --template ./
+      echo "Running azd init with force..."
+      azd init --no-prompt --force --environment $(environment) --template ./
 
       echo "Running azd up..."
       azd up --no-prompt --environment $(environment)
