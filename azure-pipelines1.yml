@@ -64,6 +64,8 @@ steps:
       echo "Verifying .env file:"
       cat .azure/$(environment)/.env 
 
+      cp .azure/$(environment)/.env .env
+
       echo "Provisioning Azure infrastructure..."
       azd provision --no-prompt --environment $(environment)
 
@@ -74,4 +76,5 @@ steps:
     AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
     AZURE_ENV_NAME: $(environment)
     AZURE_LOCATION: $(location)
-    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)   
+    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+    acrName: $(acrName)
