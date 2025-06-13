@@ -6,4 +6,10 @@ services:
     host: containerapp
 
 infra:
-  path: ./infra
+  provider: "bicep"
+  path: "./infra"
+  parameters:
+    acrName: ${acrName}
+    environmentName: ${environmentName}
+    location: ${location}
+    principalId: ${principalId}
