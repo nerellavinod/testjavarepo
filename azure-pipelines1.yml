@@ -49,8 +49,11 @@ steps:
       echo "Running azd init with force..."
       azd init --no-prompt --environment $(environment)
 
-      echo "Running azd up..."
-      azd up --no-prompt --environment $(environment)
+      echo "Provisioning Azure infrastructure..."
+      azd provision --no-prompt --environment $(environment) --parameters @infra/parameters.json
+
+      echo "Deploying Aspire application..."
+      azd deploy --no-prompt --environment $(environment)      
     workingDirectory: '$(Build.SourcesDirectory)'
   env:
     AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
