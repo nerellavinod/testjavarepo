@@ -50,7 +50,7 @@ steps:
       azd init --no-prompt --environment $(environment)
 
       echo "Copying parameters.json into environment folder..."
-      cp infra/parameters.json .azure/$(environment)/parameters.json
+      cp infra/parameters.json .azure/$(environment)/infra.parameters.json
 
       echo "Provisioning Azure infrastructure..."
       azd provision --no-prompt --environment $(environment)
