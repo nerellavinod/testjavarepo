@@ -43,6 +43,9 @@ steps:
       echo "Setting default deployment location to: $(location)"
       azd config set default-location $(location)
 
+      echo "Setting infra path explicitly to ./infra"
+      azd config set infra.path ./infra
+
       echo "Running azd up..."
       azd up --no-prompt --environment $(environment)
     workingDirectory: '$(Build.SourcesDirectory)'
