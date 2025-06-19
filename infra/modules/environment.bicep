@@ -18,13 +18,13 @@ param environmentName string
 var resourceToken = uniqueString(resourceGroup().id)
 
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: 'mi-${resourceToken}'
+  name: 'ess-managedidentity'
   location: location
   tags: tags
 }
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
-  name: empty(acrName) ? replace('acr-${resourceToken}', '-', '') : acrName
+  name: empty(acrName) ? replace('ess-acr-${resourceToken}', '-', '') : acrName
   location: location
   sku: {
     name: 'Basic'
@@ -43,7 +43,7 @@ resource caeMiRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01
 }
 
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: 'ESS-${environmentName}-insights-workspace'
+  name: 'ess-${environmentName}-insights-workspace'
   location: location
   properties: {
     sku: {

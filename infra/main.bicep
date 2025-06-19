@@ -22,7 +22,7 @@ var tags = {
 }
 
 resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
-  name: 'rg-${environmentName}'
+  name: 'rg-${environmentName}-test'
   location: location
   tags: tags
 }
