@@ -3,7 +3,7 @@ targetScope = 'subscription'
 @minLength(2)
 @maxLength(50)
 @description('Custom name for the Azure Container Registry. Must be globally unique and 5-50 alphanumeric characters.')
-param acrName string ='ess-dev-acrtemp1'
+param acrName string ='essdevacrtemp'
 
 @minLength(1)
 @maxLength(64)

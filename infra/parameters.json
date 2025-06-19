@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "acrName": {
-      "value": "ess-dev-acrtemp1"
+      "value": "essdevacrtemp"
     },
     "environmentName": {
       "value": "dev"

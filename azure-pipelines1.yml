@@ -8,7 +8,7 @@ variables:
   azureSubscription: 'bicep-serviceconnetion-temp'   # Your Azure DevOps service connection name
   environment: 'dev'
   location: 'uksouth'
-  acrName: 'ess-dev-acrtemp1'
+  acrName: 'essdevacrtemp'
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'  # Replace with your actual subscription ID
   AZURE_PRINCIPAL_ID: '350a0541-d3a0-4e6b-9af5-49254f7cd488'  # Replace with your actual principal ID
 
