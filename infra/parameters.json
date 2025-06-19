@@ -3,7 +3,7 @@
   "contentVersion": "1.0.0.0",
   "parameters": {
     "acrName": {
-      "value": "mycustomacrnamevinn"
+      "value": "ess-dev-acrtemp1"
     },
     "environmentName": {
       "value": "dev"
