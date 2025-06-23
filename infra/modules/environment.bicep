@@ -79,22 +79,6 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-p
   }
 }
 
-// Add this resource definition in your environment.bicep file
-resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
-  name: 'essstoragetemp'    // Storage account names must be lowercase and no hyphens
-  location: location
-  sku: {
-    name: 'Standard_LRS'    // Lowest cost option
-  }
-  kind: 'StorageV2'         // General purpose v2
-  properties: {
-    minimumTlsVersion: 'TLS1_2'
-    allowBlobPublicAccess: false
-    supportsHttpsTrafficOnly: true
-  }
-  tags: tags
-}
-
 output MANAGED_IDENTITY_CLIENT_ID string = managedIdentity.properties.clientId
 output MANAGED_IDENTITY_NAME string = managedIdentity.name
 output MANAGED_IDENTITY_PRINCIPAL_ID string = managedIdentity.properties.principalId
@@ -106,5 +90,3 @@ output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.name
 output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = containerAppEnvironment.name
 output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = containerAppEnvironment.id
 output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = containerAppEnvironment.properties.defaultDomain
-output STORAGE_ACCOUNT_NAME string = storageAccount.name
-output STORAGE_ACCOUNT_ID string = storageAccount.id
