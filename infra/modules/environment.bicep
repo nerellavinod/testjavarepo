@@ -18,7 +18,7 @@ param environmentName string
 var resourceToken = uniqueString(resourceGroup().id)
 
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: 'ess-managedidentity'
+  name: 'Bicepmanaged-identity-test'
   location: location
   tags: tags
 }
