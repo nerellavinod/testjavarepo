@@ -1,5 +1,6 @@
 provider "azurerm" {
   features {}
+  subscription_id = var.subscription_id
   use_cli = true
 }
 
@@ -22,6 +23,10 @@ variable "principal_id" {
 variable "tags" {
   type    = map(string)
   default = {}
+}
+
+variable "subscription_id" {
+  type = string
 }
 
 resource "azurerm_resource_group" "rg" {
