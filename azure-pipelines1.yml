@@ -43,6 +43,7 @@ steps:
       terraform import module.environment.azurerm_log_analytics_workspace.log_analytics /subscriptions/$(AZURE_SUBSCRIPTION_ID)/resourceGroups/rg-dev/providers/Microsoft.OperationalInsights/workspaces/ESS-dev-insights-workspace || true
       terraform import module.environment.azurerm_user_assigned_identity.managed_identity /subscriptions/$(AZURE_SUBSCRIPTION_ID)/resourceGroups/rg-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ess-managedidentity || true
       terraform import module.environment.azurerm_container_app_environment.containerappenv /subscriptions/$(AZURE_SUBSCRIPTION_ID)/resourceGroups/rg-dev/providers/Microsoft.App/managedEnvironments/ess-dev-containerappenv || true
+      terraform import module.environment.azurerm_role_assignment.acr_mi_role /subscriptions/c3d246d3-988a-45ae-ba70-f7faac1e2d0a/resourceGroups/rg-dev/providers/Microsoft.ContainerRegistry/registries/essdevacrtemp/providers/Microsoft.Authorization/roleAssignments/db950d41-e254-526d-40f2-4eb6b4d26e8a || true
 
 - task: AzureCLI@2
   displayName: 'Terraform Init/Plan/Apply'
