@@ -5,7 +5,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureSubscription: 'bicep-serviceconnetion-temp'   # Your Azure DevOps service connection name
+  azureSubscription: 'bicep-serviceconnetion-tempp'   # Your Azure DevOps service connection name
   environment: 'dev'
   location: 'uksouth'
   acrName: 'essdevacrtemp'
