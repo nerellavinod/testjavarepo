@@ -64,7 +64,7 @@ steps:
     repository: essdevacrtemp.azurecr.io/webfrontend
     dockerfile: src/Web/Dockerfile
     tags: latest
-    containerRegistry: bicep-to-terrafrom-dockerSC
+    containerRegistry: bicep-to-terrafrom-dockersercontn
 
 - task: Docker@2
   displayName: Build and Push API Image
@@ -73,7 +73,7 @@ steps:
     repository: essdevacrtemp.azurecr.io/apiservice
     dockerfile: src/ApiService/Dockerfile
     tags: latest
-    containerRegistry: bicep-to-terrafrom-dockerSC
+    containerRegistry: bicep-to-terrafrom-dockersercontn
 
 - task: AzureCLI@2
   displayName: Deploy Webfrontend to Container App
