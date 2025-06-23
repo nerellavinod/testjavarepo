@@ -10,6 +10,19 @@ variable "environment_name" {
   type = string
 }
 
+variable "acr_name" {
+  type = string
+}
+
+variable "principal_id" {
+  type = string
+}
+
+variable "tags" {
+  type    = map(string)
+  default = {}
+}
+
 resource "azurerm_resource_group" "rg" {
   name     = "rg-${var.environment_name}"
   location = var.location
