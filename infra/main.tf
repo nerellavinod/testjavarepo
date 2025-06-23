@@ -1,5 +1,6 @@
 provider "azurerm" {
   features {}
+  use_cli = true
 }
 
 variable "location" {
