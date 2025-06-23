@@ -9,6 +9,12 @@ param location string = resourceGroup().location
 @description('Tags that will be applied to all resources')
 param tags object = {}
 
+@description('Id of the user or app to assign application roles')
+param principalId string
+
+@description('Environment name (e.g. dev, test, prod) used for resource naming')
+param environmentName string
+
 var resourceToken = uniqueString(resourceGroup().id)
 
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -36,10 +42,69 @@ resource caeMiRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01
   }
 }
 
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
+  name: 'ess-${environmentName}-insights-workspace'
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+  }
+  tags: tags
+}
+
+resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-preview' = {
+  name: 'ess-${environmentName}-containerappenv'
+  location: location
+  properties: {
+    workloadProfiles: [{
+      workloadProfileType: 'Consumption'
+      name: 'consumption'
+    }]
+    appLogsConfiguration: {
+      destination: 'log-analytics'
+      logAnalyticsConfiguration: {
+        customerId: logAnalyticsWorkspace.properties.customerId
+        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+      }
+    }
+  }
+  tags: tags
+
+  resource aspireDashboard 'dotNetComponents' = {
+    name: 'aspire-dashboard'
+    properties: {
+      componentType: 'AspireDashboard'
+    }
+  }
+}
+
+// Add this resource definition in your environment.bicep file
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
+  name: 'essstoragetemp'    // Storage account names must be lowercase and no hyphens
+  location: location
+  sku: {
+    name: 'Standard_LRS'    // Lowest cost option
+  }
+  kind: 'StorageV2'         // General purpose v2
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: false
+    supportsHttpsTrafficOnly: true
+  }
+  tags: tags
+}
 
 output MANAGED_IDENTITY_CLIENT_ID string = managedIdentity.properties.clientId
 output MANAGED_IDENTITY_NAME string = managedIdentity.name
 output MANAGED_IDENTITY_PRINCIPAL_ID string = managedIdentity.properties.principalId
+output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logAnalyticsWorkspace.name
+output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = logAnalyticsWorkspace.id
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.properties.loginServer
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = managedIdentity.id
 output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.name
+output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = containerAppEnvironment.name
+output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = containerAppEnvironment.id
+output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = containerAppEnvironment.properties.defaultDomain
+output STORAGE_ACCOUNT_NAME string = storageAccount.name
+output STORAGE_ACCOUNT_ID string = storageAccount.id
