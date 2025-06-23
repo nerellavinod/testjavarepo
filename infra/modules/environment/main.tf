@@ -1,7 +1,3 @@
-provider "azurerm" {
-  features {}
-}
-
 variable "acr_name" {
   description = "Custom name for the Azure Container Registry. Must be globally unique and 5-50 alphanumeric characters."
   type        = string
