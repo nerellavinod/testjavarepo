@@ -30,6 +30,21 @@ steps:
   displayName: 'Install Terraform'
 
 - task: AzureCLI@2
+  displayName: 'Terraform Import Existing Resources'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      cd infra
+      terraform init
+      terraform import azurerm_resource_group.rg /subscriptions/$(AZURE_SUBSCRIPTION_ID)/resourceGroups/rg-dev || true
+      terraform import module.environment.azurerm_container_registry.acr /subscriptions/$(AZURE_SUBSCRIPTION_ID)/resourceGroups/rg-dev/providers/Microsoft.ContainerRegistry/registries/essdevacrtemp || true
+      terraform import module.environment.azurerm_log_analytics_workspace.log_analytics /subscriptions/$(AZURE_SUBSCRIPTION_ID)/resourceGroups/rg-dev/providers/Microsoft.OperationalInsights/workspaces/ESS-dev-insights-workspace || true
+      terraform import module.environment.azurerm_user_assigned_identity.managed_identity /subscriptions/$(AZURE_SUBSCRIPTION_ID)/resourceGroups/rg-dev/providers/Microsoft.ManagedIdentity/userAssignedIdentities/ess-managedidentity || true
+      terraform import module.environment.azurerm_container_app_environment.containerappenv /subscriptions/$(AZURE_SUBSCRIPTION_ID)/resourceGroups/rg-dev/providers/Microsoft.App/managedEnvironments/ess-dev-containerappenv || true
+
+- task: AzureCLI@2
   displayName: 'Terraform Init/Plan/Apply'
   inputs:
     azureSubscription: '$(azureSubscription)'
