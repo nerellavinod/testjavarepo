@@ -34,16 +34,16 @@ variable "resource_group_name" {
 }
 
 resource "azurerm_user_assigned_identity" "managed_identity" {
-  name     = "ess-managedidentity"
-  location = var.location
-  resource_group_name = azurerm_resource_group.rg.name
-  tags     = var.tags
+  name                = "ess-managedidentity"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+  tags                = var.tags
 }
 
 resource "azurerm_container_registry" "acr" {
   name                = var.acr_name
   location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_name = var.resource_group_name
   sku                 = "Basic"
   tags                = var.tags
   admin_enabled       = false
@@ -52,18 +52,18 @@ resource "azurerm_container_registry" "acr" {
 resource "azurerm_log_analytics_workspace" "log_analytics" {
   name                = "ess-${var.environment_name}-insights-workspace"
   location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
+  resource_group_name = var.resource_group_name
   sku                 = "PerGB2018"
   retention_in_days   = 30
   tags                = var.tags
 }
 
 resource "azurerm_container_app_environment" "containerappenv" {
-  name                = "ess-${var.environment_name}-containerappenv"
-  location            = var.location
-  resource_group_name = azurerm_resource_group.rg.name
-  log_analytics_workspace_id = azurerm_log_analytics_workspace.log_analytics.id
-  tags                = var.tags
+  name                        = "ess-${var.environment_name}-containerappenv"
+  location                    = var.location
+  resource_group_name         = var.resource_group_name
+  log_analytics_workspace_id  = azurerm_log_analytics_workspace.log_analytics.id
+  tags                        = var.tags
 }
 
 resource "azurerm_role_assignment" "acr_mi_role" {
@@ -77,4 +77,37 @@ output "managed_identity_client_id" {
 }
 
 output "managed_identity_name" {
-  value = azurerm_user
+  value = azurerm_user_assigned_identity.managed_identity.name
+}
+
+output "managed_identity_principal_id" {
+  value = azurerm_user_assigned_identity.managed_identity.principal_id
+}
+
+output "log_analytics_workspace_name" {
+  value = azurerm_log_analytics_workspace.log_analytics.name
+}
+
+output "log_analytics_workspace_id" {
+  value = azurerm_log_analytics_workspace.log_analytics.id
+}
+
+output "container_registry_endpoint" {
+  value = azurerm_container_registry.acr.login_server
+}
+
+output "container_registry_managed_identity_id" {
+  value = azurerm_user_assigned_identity.managed_identity.id
+}
+
+output "container_registry_name" {
+  value = azurerm_container_registry.acr.name
+}
+
+output "container_apps_environment_name" {
+  value = azurerm_container_app_environment.containerappenv.name
+}
+
+output "container_apps_environment_id" {
+  value = azurerm_container_app_environment.containerappenv.id
+}
