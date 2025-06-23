@@ -42,42 +42,6 @@ resource caeMiRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01
   }
 }
 
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: 'ess-${environmentName}-insights-workspace'
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-  }
-  tags: tags
-}
-
-resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-preview' = {
-  name: 'ess-${environmentName}-containerappenv'
-  location: location
-  properties: {
-    workloadProfiles: [{
-      workloadProfileType: 'Consumption'
-      name: 'consumption'
-    }]
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: logAnalyticsWorkspace.properties.customerId
-        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
-      }
-    }
-  }
-  tags: tags
-
-  resource aspireDashboard 'dotNetComponents' = {
-    name: 'aspire-dashboard'
-    properties: {
-      componentType: 'AspireDashboard'
-    }
-  }
-}
 
 output MANAGED_IDENTITY_CLIENT_ID string = managedIdentity.properties.clientId
 output MANAGED_IDENTITY_NAME string = managedIdentity.name
