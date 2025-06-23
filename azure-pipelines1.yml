@@ -40,3 +40,45 @@ steps:
       terraform init
       terraform plan -out=tfplan
       terraform apply -auto-approve tfplan
+
+- task: Docker@2
+  displayName: Build and Push Web Image
+  inputs:
+    command: buildAndPush
+    repository: essdevacrtemp.azurecr.io/webfrontend
+    dockerfile: src/Web/Dockerfile
+    tags: latest
+    containerRegistry: bicep-to-terrafrom-dockerSC
+
+- task: Docker@2
+  displayName: Build and Push API Image
+  inputs:
+    command: buildAndPush
+    repository: essdevacrtemp.azurecr.io/apiservice
+    dockerfile: src/ApiService/Dockerfile
+    tags: latest
+    containerRegistry: bicep-to-terrafrom-dockerSC
+
+- task: AzureCLI@2
+  displayName: Deploy Webfrontend to Container App
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az containerapp update \
+        --name <webfrontend-app-name> \
+        --resource-group rg-dev \
+        --image essdevacrtemp.azurecr.io/webfrontend:latest
+
+- task: AzureCLI@2
+  displayName: Deploy API Service to Container App
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      az containerapp update \
+        --name <apiservice-app-name> \
+        --resource-group rg-dev \
+        --image essdevacrtemp.azurecr.io/apiservice:latest
