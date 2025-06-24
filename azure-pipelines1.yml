@@ -59,42 +59,6 @@ steps:
         --mode Complete
 
 - task: AzureCLI@2
-  displayName: 'Build and Push Container Images'
-  inputs:
-    azureSubscription: '$(azureSubscription)'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      # Login to ACR
-      az acr login -n $(acrName)
-      
-      # Build and push Web frontend
-      docker build -t $(acrName).azurecr.io/webfrontend:latest -f src/Web/Dockerfile .
-      docker push $(acrName).azurecr.io/webfrontend:latest
-      
-      # Build and push API service
-      docker build -t $(acrName).azurecr.io/apiservice:latest -f src/ApiService/Dockerfile .
-      docker push $(acrName).azurecr.io/apiservice:latest
-
-- task: AzureCLI@2
-  displayName: 'Deploy Container Apps'
-  inputs:
-    azureSubscription: '$(azureSubscription)'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      echo "Deploying container apps..."
-      az containerapp update \
-        --name webfrontend \
-        --resource-group rg-$(environment)-test \
-        --image $(acrName).azurecr.io/webfrontend:latest
-
-      az containerapp update \
-        --name apiservice \
-        --resource-group rg-$(environment)-test \
-        --image $(acrName).azurecr.io/apiservice:latest
-
-- task: AzureCLI@2
   displayName: 'Verify Final Deployment'
   inputs:
     azureSubscription: '$(azureSubscription)'
