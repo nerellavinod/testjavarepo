@@ -46,10 +46,13 @@ steps:
       echo "Setting Azure subscription..."
       az account set --subscription $(AZURE_SUBSCRIPTION_ID)
 
+      echo "Creating resource group if not exists..."
+      az group create --name rg-$(environment)-test --location $(location)
+
       echo "Deploying infrastructure in Complete mode..."
-      az deployment sub create \
+      az deployment group create \
         --name "deployment-$(Build.BuildId)" \
-        --location $(location) \
+        --resource-group rg-$(environment)-test \
         --template-file infra/main.bicep \
         --parameters \
             environmentName=$(environment) \
@@ -58,7 +61,6 @@ steps:
             location=$(location) \
         --mode Complete
 
-# Using AzureCLI for Docker operations instead of Docker@2 task
 - task: AzureCLI@2
   displayName: 'Build and Push Container Images'
   inputs:
