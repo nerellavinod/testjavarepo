@@ -70,11 +70,70 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-p
     }
   }
   tags: tags
+}
 
-  resource aspireDashboard 'dotNetComponents' = {
-    name: 'aspire-dashboard'
-    properties: {
-      componentType: 'AspireDashboard'
+resource webfrontendApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: 'webfrontend'
+  location: location
+  properties: {
+    managedEnvironmentId: containerAppEnvironment.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 80
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: 'webfrontend'
+          image: '${containerRegistry.name}.azurecr.io/webfrontend:latest'
+        }
+      ]
+    }
+  }
+}
+
+resource apiserviceApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: 'apiservice'
+  location: location
+  properties: {
+    managedEnvironmentId: containerAppEnvironment.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 80
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: 'apiservice'
+          image: '${containerRegistry.name}.azurecr.io/apiservice:latest'
+        }
+      ]
+    }
+  }
+}
+
+resource cacheApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: 'cache'
+  location: location
+  properties: {
+    managedEnvironmentId: containerAppEnvironment.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 80
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: 'cache'
+          image: '${containerRegistry.name}.azurecr.io/cache:latest'
+        }
+      ]
     }
   }
 }
