@@ -46,9 +46,6 @@ steps:
       echo "Setting Azure subscription..."
       az account set --subscription $(AZURE_SUBSCRIPTION_ID)
 
-      echo "Creating resource group if not exists..."
-      az group create --name rg-$(environment)-test --location $(location)
-
       echo "Deploying infrastructure in Complete mode..."
       az deployment group create \
         --name "deployment-$(Build.BuildId)" \
