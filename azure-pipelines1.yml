@@ -58,23 +58,24 @@ steps:
             location=$(location) \
         --mode Complete
 
-- task: Docker@2
-  displayName: 'Build and Push Web Image'
+# Using AzureCLI for Docker operations instead of Docker@2 task
+- task: AzureCLI@2
+  displayName: 'Build and Push Container Images'
   inputs:
-    command: buildAndPush
-    repository: $(acrName).azurecr.io/webfrontend
-    dockerfile: src/Web/Dockerfile
-    tags: latest
-    containerRegistry: bicep-to-terraform-dockersercon
-
-- task: Docker@2
-  displayName: 'Build and Push API Image'
-  inputs:
-    command: buildAndPush
-    repository: $(acrName).azurecr.io/apiservice
-    dockerfile: src/ApiService/Dockerfile
-    tags: latest
-    containerRegistry: bicep-to-terraform-dockersercon
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      # Login to ACR
+      az acr login -n $(acrName)
+      
+      # Build and push Web frontend
+      docker build -t $(acrName).azurecr.io/webfrontend:latest -f src/Web/Dockerfile .
+      docker push $(acrName).azurecr.io/webfrontend:latest
+      
+      # Build and push API service
+      docker build -t $(acrName).azurecr.io/apiservice:latest -f src/ApiService/Dockerfile .
+      docker push $(acrName).azurecr.io/apiservice:latest
 
 - task: AzureCLI@2
   displayName: 'Deploy Container Apps'
