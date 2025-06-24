@@ -22,11 +22,6 @@ steps:
     packageType: 'sdk'
     version: '9.x'
 
-- script: |
-    curl -fsSL https://aka.ms/install-azd.sh | bash
-    echo "azd installed successfully"
-  displayName: 'Install Azure Developer CLI (azd)'
-
 - task: AzureCLI@2
   displayName: 'Safety Check - List Resources'
   inputs:
@@ -40,7 +35,7 @@ steps:
       sleep 10
 
 - task: AzureCLI@2
-  displayName: 'Deploy with azd (Complete Mode)'
+  displayName: 'Deploy Infrastructure (Complete Mode)'
   inputs:
     azureSubscription: '$(azureSubscription)'
     scriptType: 'bash'
@@ -51,35 +46,56 @@ steps:
       echo "Setting Azure subscription..."
       az account set --subscription $(AZURE_SUBSCRIPTION_ID)
 
-      echo "Configuring azd..."
-      azd config set auth.useAzCliAuth "true"
-      azd config set default-location $(location)
-      azd config set infra.path ./infra
+      echo "Deploying infrastructure in Complete mode..."
+      az deployment sub create \
+        --name "deployment-$(Build.BuildId)" \
+        --location $(location) \
+        --template-file infra/main.bicep \
+        --parameters \
+            environmentName=$(environment) \
+            acrName=$(acrName) \
+            principalId=$(AZURE_PRINCIPAL_ID) \
+            location=$(location) \
+        --mode Complete
 
-      echo "Cleaning up old environment..."
-      azd env delete --yes --environment $(environment) || true
-      rm -rf .azure/$(environment)
+- task: Docker@2
+  displayName: 'Build and Push Web Image'
+  inputs:
+    command: buildAndPush
+    repository: $(acrName).azurecr.io/webfrontend
+    dockerfile: src/Web/Dockerfile
+    tags: latest
+    containerRegistry: bicep-to-terraform-dockersercon
 
-      echo "Initializing new environment..."
-      azd init --no-prompt --environment $(environment)
-
-      echo "Setting environment parameters..."
-      azd env set acrName "$(acrName)" --environment $(environment)
-      azd env set environmentName "$(environment)" --environment $(environment)
-      azd env set location "$(location)" --environment $(environment)
-      azd env set principalId "$(AZURE_PRINCIPAL_ID)" --environment $(environment)
-
-      echo "Current environment values:"
-      azd env get-values --environment $(environment)
-
-      echo "Provisioning infrastructure (Complete mode)..."
-      azd provision --no-prompt --mode Complete
-
-      echo "Deploying application..."
-      azd deploy --no-prompt --environment $(environment)
+- task: Docker@2
+  displayName: 'Build and Push API Image'
+  inputs:
+    command: buildAndPush
+    repository: $(acrName).azurecr.io/apiservice
+    dockerfile: src/ApiService/Dockerfile
+    tags: latest
+    containerRegistry: bicep-to-terraform-dockersercon
 
 - task: AzureCLI@2
-  displayName: 'Verify Deployment'
+  displayName: 'Deploy Container Apps'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "Deploying container apps..."
+      az containerapp update \
+        --name webfrontend \
+        --resource-group rg-$(environment)-test \
+        --image $(acrName).azurecr.io/webfrontend:latest
+
+      az containerapp update \
+        --name apiservice \
+        --resource-group rg-$(environment)-test \
+        --image $(acrName).azurecr.io/apiservice:latest
+
+- task: AzureCLI@2
+  displayName: 'Verify Final Deployment'
   inputs:
     azureSubscription: '$(azureSubscription)'
     scriptType: 'bash'
@@ -87,7 +103,7 @@ steps:
     inlineScript: |
       echo "Final resources after deployment:"
       az resource list -g rg-$(environment)-test --query "[].{name:name, type:type}" -o table
-    workingDirectory: '$(Build.SourcesDirectory)'
+
   env:
     AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
     AZURE_ENV_NAME: $(environment)
