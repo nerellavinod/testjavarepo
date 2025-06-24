@@ -5,12 +5,12 @@ pool:
   vmImage: 'ubuntu-latest'
 
 variables:
-  azureSubscription: 'bicep-serviceconnetion-tempp'   # Your Azure DevOps service connection name
+  azureSubscription: 'bicep-serviceconnetion-tempp'   
   environment: 'dev'
   location: 'uksouth'
   acrName: 'essdevacrtemp'
-  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'  # Replace with your actual subscription ID
-  AZURE_PRINCIPAL_ID: '6bbb29a1-ec8e-4b3a-849e-9ebb77bde171' ##350a0541-d3a0-4e6b-9af5-49254f7cd488 Replace with your actual principal ID
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  AZURE_PRINCIPAL_ID: '6bbb29a1-ec8e-4b3a-849e-9ebb77bde171'
 
 steps:
 - checkout: self
@@ -28,7 +28,19 @@ steps:
   displayName: 'Install Azure Developer CLI (azd)'
 
 - task: AzureCLI@2
-  displayName: 'Deploy with azd up (Bicep)'
+  displayName: 'Safety Check - List Resources'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "Current resources that may be affected:"
+      az resource list -g rg-$(environment)-test --query "[].{name:name, type:type}" -o table
+      echo "Waiting 10 seconds for safety check..."
+      sleep 10
+
+- task: AzureCLI@2
+  displayName: 'Deploy with azd (Complete Mode)'
   inputs:
     azureSubscription: '$(azureSubscription)'
     scriptType: 'bash'
@@ -36,45 +48,48 @@ steps:
     inlineScript: |
       set -e
 
-      echo "Setting Azure subscription explicitly..."
+      echo "Setting Azure subscription..."
       az account set --subscription $(AZURE_SUBSCRIPTION_ID)
 
-      echo "Configuring azd to use Azure CLI authentication..."
+      echo "Configuring azd..."
       azd config set auth.useAzCliAuth "true"
-
-      echo "Setting default deployment location to: $(location)"
       azd config set default-location $(location)
-
-      echo "Setting infra path explicitly to ./infra"
       azd config set infra.path ./infra
 
-      echo "Cleaning up old azd environment (if any)..."
+      echo "Cleaning up old environment..."
       azd env delete --yes --environment $(environment) || true
       rm -rf .azure/$(environment)
 
-      echo " check version"
-      azd version
-
-      echo "Running azd init with force..."
+      echo "Initializing new environment..."
       azd init --no-prompt --environment $(environment)
 
-      echo "Setting azd environment parameters..."
+      echo "Setting environment parameters..."
       azd env set acrName "$(acrName)" --environment $(environment)
       azd env set environmentName "$(environment)" --environment $(environment)
       azd env set location "$(location)" --environment $(environment)
       azd env set principalId "$(AZURE_PRINCIPAL_ID)" --environment $(environment)
 
-      echo "Dumping azd environment values:"
+      echo "Current environment values:"
       azd env get-values --environment $(environment)
 
-      echo "Provisioning Azure infrastructure..."
-      azd provision --no-prompt 
+      echo "Provisioning infrastructure (Complete mode)..."
+      azd provision --no-prompt --mode Complete
 
-      echo "Deploying Aspire application..."
-      azd deploy --no-prompt --environment $(environment)      
+      echo "Deploying application..."
+      azd deploy --no-prompt --environment $(environment)
+
+- task: AzureCLI@2
+  displayName: 'Verify Deployment'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "Final resources after deployment:"
+      az resource list -g rg-$(environment)-test --query "[].{name:name, type:type}" -o table
     workingDirectory: '$(Build.SourcesDirectory)'
   env:
     AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
     AZURE_ENV_NAME: $(environment)
     AZURE_LOCATION: $(location)
-    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)  
+    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
