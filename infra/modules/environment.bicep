@@ -16,6 +16,7 @@ param principalId string
 param environmentName string
 
 var resourceToken = uniqueString(resourceGroup().id)
+var acrPullRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
 
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: 'Bicepmanaged-identity-test'
@@ -33,12 +34,12 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
 }
 
 resource caeMiRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(containerRegistry.id, managedIdentity.id, subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d'))
+  name: guid(containerRegistry.id, managedIdentity.id, acrPullRole)
   scope: containerRegistry
   properties: {
     principalId: managedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
+    roleDefinitionId: acrPullRole
   }
 }
 
@@ -75,6 +76,12 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-p
 resource webfrontendApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'webfrontend'
   location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentity.id}': {}
+    }
+  }
   properties: {
     managedEnvironmentId: containerAppEnvironment.id
     configuration: {
@@ -82,6 +89,12 @@ resource webfrontendApp 'Microsoft.App/containerApps@2023-05-01' = {
         external: true
         targetPort: 80
       }
+      registries: [
+        {
+          server: '${containerRegistry.name}.azurecr.io'
+          identity: managedIdentity.id
+        }
+      ]
     }
     template: {
       containers: [
@@ -97,6 +110,12 @@ resource webfrontendApp 'Microsoft.App/containerApps@2023-05-01' = {
 resource apiserviceApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'apiservice'
   location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentity.id}': {}
+    }
+  }
   properties: {
     managedEnvironmentId: containerAppEnvironment.id
     configuration: {
@@ -104,6 +123,12 @@ resource apiserviceApp 'Microsoft.App/containerApps@2023-05-01' = {
         external: true
         targetPort: 80
       }
+      registries: [
+        {
+          server: '${containerRegistry.name}.azurecr.io'
+          identity: managedIdentity.id
+        }
+      ]
     }
     template: {
       containers: [
@@ -119,6 +144,12 @@ resource apiserviceApp 'Microsoft.App/containerApps@2023-05-01' = {
 resource cacheApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'cache'
   location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentity.id}': {}
+    }
+  }
   properties: {
     managedEnvironmentId: containerAppEnvironment.id
     configuration: {
@@ -126,6 +157,12 @@ resource cacheApp 'Microsoft.App/containerApps@2023-05-01' = {
         external: true
         targetPort: 80
       }
+      registries: [
+        {
+          server: '${containerRegistry.name}.azurecr.io'
+          identity: managedIdentity.id
+        }
+      ]
     }
     template: {
       containers: [
