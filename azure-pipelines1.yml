@@ -35,6 +35,26 @@ steps:
       sleep 10
 
 - task: AzureCLI@2
+  displayName: 'Create and Push Placeholder Images'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      # Login to ACR
+      az acr login -n $(acrName)
+      
+      # Create and push placeholder images
+      echo "FROM mcr.microsoft.com/dotnet/aspnet:7.0" > Dockerfile
+      docker build -t $(acrName).azurecr.io/webfrontend:latest .
+      docker build -t $(acrName).azurecr.io/apiservice:latest .
+      docker build -t $(acrName).azurecr.io/cache:latest .
+      
+      docker push $(acrName).azurecr.io/webfrontend:latest
+      docker push $(acrName).azurecr.io/apiservice:latest
+      docker push $(acrName).azurecr.io/cache:latest
+
+- task: AzureCLI@2
   displayName: 'Deploy Infrastructure (Complete Mode)'
   inputs:
     azureSubscription: '$(azureSubscription)'
