@@ -1,7 +1,9 @@
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Azure.Messaging.ServiceBus;
 using System.Text.Json;
+using System.Net;
 
 namespace ESS.FunctionApp
 {
@@ -19,15 +21,15 @@ namespace ESS.FunctionApp
             [ServiceBusTrigger("orchestrator-queue", Connection = "ServiceBusConnection")] ServiceBusReceivedMessage message)
         {
             _logger.LogInformation($"Processing message: {message.MessageId}");
-
+            
             try
             {
                 var messageBody = message.Body.ToString();
                 _logger.LogInformation($"Message content: {messageBody}");
-
+                
                 // Process your orchestrator logic here
                 await ProcessOrchestratorLogic(messageBody);
-
+                
                 _logger.LogInformation($"Successfully processed message: {message.MessageId}");
             }
             catch (Exception ex)
@@ -38,13 +40,13 @@ namespace ESS.FunctionApp
         }
 
         [Function("SendToOrchestratorQueue")]
-        public async Task<object> SendToOrchestratorQueue(
+        public async Task<HttpResponseData> SendToOrchestratorQueue(
             [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequestData req)
         {
             _logger.LogInformation("HTTP trigger function processed a request to send message to orchestrator queue.");
 
             var requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-
+            
             var serviceBusClient = new ServiceBusClient(Environment.GetEnvironmentVariable("ServiceBusConnection"));
             var sender = serviceBusClient.CreateSender(Environment.GetEnvironmentVariable("OrchestratorQueueName"));
 
@@ -53,7 +55,10 @@ namespace ESS.FunctionApp
 
             _logger.LogInformation("Message sent to orchestrator queue successfully.");
 
-            return new { Status = "Message sent successfully", MessageId = message.MessageId };
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            await response.WriteAsJsonAsync(new { Status = "Message sent successfully", MessageId = message.MessageId });
+
+            return response;
         }
 
         private async Task ProcessOrchestratorLogic(string messageContent)
