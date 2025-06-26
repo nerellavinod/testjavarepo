@@ -59,33 +59,6 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' = {
   tags: tags
 }
 
-// Service Bus Namespace for Orchestrator Queue
-resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
-  name: 'ess-${environmentName}-servicebus'
-  location: location
-  sku: {
-    name: 'Standard'
-    tier: 'Standard'
-  }
-  properties: {
-    minimumTlsVersion: '1.2'
-  }
-  tags: tags
-}
-
-// Orchestrator Queue
-resource orchestratorQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
-  parent: serviceBusNamespace
-  name: 'orchestrator-queue'
-  properties: {
-    maxSizeInMegabytes: 1024
-    defaultMessageTimeToLive: 'P14D'
-    lockDuration: 'PT5M'
-    deadLetteringOnMessageExpiration: true
-    maxDeliveryCount: 10
-  }
-}
-
 // App Service Plan for Function App
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   name: 'ess-${environmentName}-asp'
@@ -96,6 +69,18 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
   }
   properties: {
     reserved: false
+  }
+  tags: tags
+}
+
+// Application Insights for Function App
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: 'ess-${environmentName}-appinsights'
+  location: location
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
   }
   tags: tags
 }
@@ -136,12 +121,12 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: 'dotnet'
         }
         {
-          name: 'ServiceBusConnection'
-          value: 'Endpoint=sb://${serviceBusNamespace.name}.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=${serviceBusNamespace.listKeys().primaryKey}'
+          name: 'APPINSIGHTS_INSTRUMENTATIONKEY'
+          value: applicationInsights.properties.InstrumentationKey
         }
         {
-          name: 'OrchestratorQueueName'
-          value: orchestratorQueue.name
+          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+          value: applicationInsights.properties.ConnectionString
         }
       ]
       netFrameworkVersion: 'v8.0'
@@ -195,6 +180,5 @@ output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = containerAppEnvironment.id
 output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = containerAppEnvironment.properties.defaultDomain
 output FUNCTION_APP_NAME string = functionApp.name
 output FUNCTION_APP_URL string = 'https://${functionApp.properties.defaultHostName}'
-output SERVICE_BUS_NAMESPACE string = serviceBusNamespace.name
-output ORCHESTRATOR_QUEUE_NAME string = orchestratorQueue.name
 output STORAGE_ACCOUNT_NAME string = storageAccount.name
+output APPLICATION_INSIGHTS_NAME string = applicationInsights.name
