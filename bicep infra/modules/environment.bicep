@@ -18,12 +18,14 @@ param environmentName string
 var resourceToken = uniqueString(resourceGroup().id)
 var acrPullRole = subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '7f951dda-4ed3-4680-a7ca-43fe172d538d')
 
+// Managed Identity
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
   name: 'Bicepmanaged-identity-test'
   location: location
   tags: tags
 }
 
+// Container Registry
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' = {
   name: empty(acrName) ? replace('ess-acr-${resourceToken}', '-', '') : acrName
   location: location
@@ -33,6 +35,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-07-01' =
   tags: tags
 }
 
+// Role Assignment for ACR Pull
 resource caeMiRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(containerRegistry.id, managedIdentity.id, acrPullRole)
   scope: containerRegistry
@@ -85,6 +88,33 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   tags: tags
 }
 
+// Service Bus Namespace
+resource serviceBusNamespace 'Microsoft.ServiceBus/namespaces@2022-10-01-preview' = {
+  name: 'ess-${environmentName}-sb'
+  location: location
+  sku: {
+    name: 'Standard'
+    tier: 'Standard'
+  }
+  properties: {
+    minimumTlsVersion: '1.2'
+  }
+  tags: tags
+}
+
+// Orchestrator Queue
+resource orchestratorQueue 'Microsoft.ServiceBus/namespaces/queues@2022-10-01-preview' = {
+  parent: serviceBusNamespace
+  name: 'orchestrator-queue'
+  properties: {
+    maxSizeInMegabytes: 1024
+    defaultMessageTimeToLive: 'P14D'
+    lockDuration: 'PT5M'
+    deadLetteringOnMessageExpiration: true
+    maxDeliveryCount: 10
+  }
+}
+
 // Function App
 resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
   name: 'ess-${environmentName}-func-app'
@@ -128,6 +158,14 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: applicationInsights.properties.ConnectionString
         }
+        {
+          name: 'ServiceBusConnection'
+          value: listKeys(serviceBusNamespace.id, '2017-04-01').primaryConnectionString
+        }
+        {
+          name: 'OrchestratorQueueName'
+          value: orchestratorQueue.name
+        }
       ]
       netFrameworkVersion: 'v8.0'
       use32BitWorkerProcess: false
@@ -137,6 +175,7 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
   tags: tags
 }
 
+// Log Analytics
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: 'ess-${environmentName}-insights-workspace'
   location: location
@@ -148,6 +187,7 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2022-10
   tags: tags
 }
 
+// Container Apps Environment
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-preview' = {
   name: 'ess-${environmentName}-containerappenv'
   location: location
@@ -182,3 +222,5 @@ output FUNCTION_APP_NAME string = functionApp.name
 output FUNCTION_APP_URL string = 'https://${functionApp.properties.defaultHostName}'
 output STORAGE_ACCOUNT_NAME string = storageAccount.name
 output APPLICATION_INSIGHTS_NAME string = applicationInsights.name
+output SERVICE_BUS_NAMESPACE string = serviceBusNamespace.name
+output ORCHESTRATOR_QUEUE_NAME string = orchestratorQueue.name
