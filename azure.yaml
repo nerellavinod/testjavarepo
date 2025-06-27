@@ -12,4 +12,3 @@ infra:
     acrName: ${acrName}
     environmentName: ${environmentName}
     location: ${location}
-    principalId: ${principalId}
