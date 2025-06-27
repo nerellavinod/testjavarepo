@@ -99,30 +99,6 @@ steps:
             location=$(location) \
         --mode Complete
 
-- task: DotNetCoreCLI@2
-  displayName: 'Build Function App'
-  inputs:
-    command: 'build'
-    projects: 'src/FunctionApp/**/*.csproj'
-    arguments: '--configuration Release'
-
-- task: DotNetCoreCLI@2
-  displayName: 'Publish Function App'
-  inputs:
-    command: 'publish'
-    projects: 'src/FunctionApp/**/*.csproj'
-    arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/functionapp'
-    publishWebProjects: false
-
-- task: AzureFunctionApp@1
-  displayName: 'Deploy Function App'
-  inputs:
-    azureSubscription: '$(azureSubscription)'
-    appType: 'functionApp'
-    appName: 'ess-$(environment)-func-app'
-    package: '$(Build.ArtifactStagingDirectory)/functionapp/**/*.zip'
-    deploymentMethod: 'auto'
-
 - task: AzureCLI@2
   displayName: 'Verify Final Deployment'
   inputs:
@@ -132,9 +108,6 @@ steps:
     inlineScript: |
       echo "Final resources after deployment:"
       az resource list -g rg-$(environment)-test --query "[].{name:name, type:type}" -o table
-      
-      echo "Function App Details:"
-      az functionapp show --name ess-$(environment)-func-app --resource-group rg-$(environment)-test --query "{name:name, state:state, defaultHostName:defaultHostName}" -o table
 
   env:
     AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
