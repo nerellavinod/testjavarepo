@@ -120,4 +120,3 @@ output ASPIRE_DASHBOARD_NAME string = aspireDashboard.name
 output ASPIRE_DASHBOARD_ID string = aspireDashboard.id
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logAnalyticsWorkspace.name
 output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = logAnalyticsWorkspace.id
-output MANAGED_IDENTITY_CLIENT_ID string = managedIdentity.properties
