@@ -63,7 +63,7 @@ jobs:
               whatif_output=$(az deployment group what-if \
                 --resource-group rg-${{ parameters.environment }}-test \
                 --template-file infra/main.bicep \
-                --parameters environmentName=${{ parameters.environment }} acrName=${{ parameters.acrName }} principalId=${{ parameters.AZURE_PRINCIPAL_ID }} location=${{ parameters.location }} \
+                --parameters environmentName=${{ parameters.environment }} acrName=${{ parameters.acrName }} location=${{ parameters.location }} \
                 --query "properties.changes" -o tsv)
               if [[ -n "$whatif_output" && "${{ parameters.continueOnResourceDestroy }}" != "true" ]]; then
                 echo "ERROR: The deployment will change resources. Failing pipeline as approval is not given."
@@ -106,7 +106,6 @@ jobs:
                 --parameters \
                     environmentName=${{ parameters.environment }} \
                     acrName=${{ parameters.acrName }} \
-                    principalId=${{ parameters.AZURE_PRINCIPAL_ID }} \
                     location=${{ parameters.location }} \
                 --mode Complete
 

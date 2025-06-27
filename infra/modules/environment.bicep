@@ -9,9 +9,6 @@ param location string = resourceGroup().location
 @description('Tags that will be applied to all resources')
 param tags object = {}
 
-@description('Id of the user or app to assign application roles')
-param principalId string
-
 @description('Environment name (e.g. dev, test, prod) used for resource naming')
 param environmentName string
 

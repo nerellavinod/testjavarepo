@@ -24,7 +24,6 @@ module resources 'modules/environment.bicep' = {
   params: {
     location: location
     tags: tags
-    principalId: principalId
     acrName: acrName
     environmentName: environmentName
   }
