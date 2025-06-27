@@ -81,4 +81,26 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
     type: 'UserAssigned'
     userAssignedIdentities: {
       '${managedIdentity.id}': {}
-   
+    }
+  }
+  properties: {
+    httpsOnly: true
+    siteConfig: {
+      appSettings: [
+        {
+          name: 'FUNCTIONS_EXTENSION_VERSION'
+          value: '~4'
+        }
+        {
+          name: 'FUNCTIONS_WORKER_RUNTIME'
+          value: 'dotnet'
+        }
+      ]
+    }
+  }
+  tags: tags
+}
+
+output FUNCTION_APP_NAME string = functionApp.name
+output FUNCTION_APP_ID string = functionApp.id
+output FUNCTION_APP_DEFAULT_HOST_NAME string = functionApp.properties.defaultHostName
