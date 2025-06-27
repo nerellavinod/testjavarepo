@@ -1,5 +1,5 @@
 # Pipeline for sample project using real-time structure
-trigger: none  # Disabling automatic triggers for manual runs
+trigger: none  # Disabling automatic triggers for manual runsq
 
 parameters:
 - name: environmentType
