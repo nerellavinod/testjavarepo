@@ -73,14 +73,12 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-p
   tags: tags
 }
 
-output MANAGED_IDENTITY_CLIENT_ID string = managedIdentity.properties.clientId
-output MANAGED_IDENTITY_NAME string = managedIdentity.name
-output MANAGED_IDENTITY_PRINCIPAL_ID string = managedIdentity.properties.principalId
-output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logAnalyticsWorkspace.name
-output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = logAnalyticsWorkspace.id
-output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.properties.loginServer
-output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = managedIdentity.id
-output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.name
-output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = containerAppEnvironment.name
-output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = containerAppEnvironment.id
-output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = containerAppEnvironment.properties.defaultDomain
+resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
+  name: 'ess-${environmentName}-func-app'
+  location: location
+  kind: 'functionapp'
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentity.id}': {}
+   

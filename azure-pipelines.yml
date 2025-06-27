@@ -1,0 +1,44 @@
+# Pipeline for sample project using real-time structure
+trigger: none  # Disabling automatic triggers for manual runs
+
+parameters:
+- name: environmentType
+  displayName: 'Environment Type'
+  type: string
+  default: 'dev'
+  values:
+  - dev
+  - test
+  - prod
+
+- name: continueOnResourceDestroy
+  displayName: 'Continue even if resources are getting destroyed'
+  type: boolean
+  default: false
+
+- name: location
+  displayName: 'Deployment Location'
+  type: string
+  default: 'uksouth'
+
+variables:
+  azureSubscription: 'bicep-serviceconnetion-tempp'
+  environment: ${{ parameters.environmentType }}
+  location: ${{ parameters.location }}
+  acrName: 'essdevacrtemp'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  AZURE_PRINCIPAL_ID: '6bbb29a1-ec8e-4b3a-849e-9ebb77bde171'
+
+stages:
+- stage: DevDeploy
+  displayName: 'Dev Deploy'
+  jobs:
+  - template: templates/continuous-deployment.yml
+    parameters:
+      azureSubscription: $(azureSubscription)
+      environment: $(environment)
+      location: $(location)
+      acrName: $(acrName)
+      continueOnResourceDestroy: ${{ parameters.continueOnResourceDestroy }}
+      AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+      AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)

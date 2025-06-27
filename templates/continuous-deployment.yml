@@ -1,0 +1,106 @@
+parameters:
+- name: azureSubscription
+  type: string
+- name: environment
+  type: string
+- name: location
+  type: string
+- name: acrName
+  type: string
+- name: continueOnResourceDestroy
+  type: boolean
+- name: AZURE_SUBSCRIPTION_ID
+  type: string
+- name: AZURE_PRINCIPAL_ID
+  type: string
+
+jobs:
+- deployment: DeployApp
+  displayName: 'Deploy Application and Infrastructure'
+  environment: ${{ parameters.environment }}
+  pool:
+    vmImage: 'ubuntu-latest'
+  workspace:
+    clean: all
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - checkout: self
+          clean: true
+
+        - task: UseDotNet@2
+          displayName: 'Install .NET 9 SDK'
+          inputs:
+            packageType: 'sdk'
+            version: '9.x'
+
+        - task: AzureCLI@2
+          displayName: 'Safety Check - List Resources'
+          inputs:
+            azureSubscription: ${{ parameters.azureSubscription }}
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              echo "Current resources that may be affected:"
+              az resource list -g rg-${{ parameters.environment }}-test --query "[].{name:name, type:type}" -o table
+              
+              if [[ "${{ parameters.continueOnResourceDestroy }}" != "true" ]]; then
+                echo "Waiting 30 seconds for safety check. Press Ctrl+C to abort if resources should not be destroyed."
+                sleep 30
+              else
+                echo "Continuing without safety wait as destruction of resources is approved."
+              fi
+
+        - task: AzureCLI@2
+          displayName: 'Create and Push Placeholder Images'
+          inputs:
+            azureSubscription: ${{ parameters.azureSubscription }}
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              az acr login -n ${{ parameters.acrName }}
+              echo "FROM mcr.microsoft.com/dotnet/aspnet:7.0" > Dockerfile
+              docker build -t ${{ parameters.acrName }}.azurecr.io/webfrontend:latest .
+              docker build -t ${{ parameters.acrName }}.azurecr.io/apiservice:latest .
+              docker build -t ${{ parameters.acrName }}.azurecr.io/cache:latest .
+              docker push ${{ parameters.acrName }}.azurecr.io/webfrontend:latest
+              docker push ${{ parameters.acrName }}.azurecr.io/apiservice:latest
+              docker push ${{ parameters.acrName }}.azurecr.io/cache:latest
+
+        - task: AzureCLI@2
+          displayName: 'Deploy Infrastructure (Complete Mode)'
+          inputs:
+            azureSubscription: ${{ parameters.azureSubscription }}
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              set -e
+              echo "Setting Azure subscription..."
+              az account set --subscription ${{ parameters.AZURE_SUBSCRIPTION_ID }}
+              echo "Deploying infrastructure in Complete mode..."
+              az deployment group create \
+                --name "deployment-$(Build.BuildId)" \
+                --resource-group rg-${{ parameters.environment }}-test \
+                --template-file infra/main.bicep \
+                --parameters \
+                    environmentName=${{ parameters.environment }} \
+                    acrName=${{ parameters.acrName }} \
+                    principalId=${{ parameters.AZURE_PRINCIPAL_ID }} \
+                    location=${{ parameters.location }} \
+                --mode Complete
+
+        - task: AzureCLI@2
+          displayName: 'Verify Final Deployment'
+          inputs:
+            azureSubscription: ${{ parameters.azureSubscription }}
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              echo "Final resources after deployment:"
+              az resource list -g rg-${{ parameters.environment }}-test --query "[].{name:name, type:type}" -o table
+          env:
+            AZURE_PRINCIPAL_ID: ${{ parameters.AZURE_PRINCIPAL_ID }}
+            AZURE_ENV_NAME: ${{ parameters.environment }}
+            AZURE_LOCATION: ${{ parameters.location }}
+            AZURE_SUBSCRIPTION_ID: ${{ parameters.AZURE_SUBSCRIPTION_ID }}
