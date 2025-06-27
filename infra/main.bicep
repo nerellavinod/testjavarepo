@@ -8,9 +8,6 @@ param acrName string ='essdevacrtemp'
 @description('Name of the environment')
 param environmentName string = 'dev'
 
-@description('Id of the user or app to assign application roles')
-param principalId string = '6bbb29a1-ec8e-4b3a-849e-9ebb77bde171'
-
 @minLength(1)
 @description('The location used for all deployed resources')
 param location string = 'uksouth'
