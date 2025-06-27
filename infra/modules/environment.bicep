@@ -98,7 +98,7 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
   tags: tags
 }
 
-resource aspireDashboard 'Microsoft.App/dotNetComponents@2024-03-01-preview' = {
+resource aspireDashboard 'dotNetComponents' = {
   name: 'aspire-dashboard'
   location: location
   properties: {
