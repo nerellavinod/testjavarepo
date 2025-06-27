@@ -65,7 +65,8 @@ jobs:
                 --template-file infra/main.bicep \
                 --parameters environmentName=${{ parameters.environment }} acrName=${{ parameters.acrName }} location=${{ parameters.location }} \
                 --query "properties.changes" -o tsv)
-              if [[ -n "$whatif_output" && "${{ parameters.continueOnResourceDestroy }}" != "true" ]]; then
+              echo "continueOnResourceDestroy value: '${{ parameters.continueOnResourceDestroy }}'"
+              if [[ -n "$whatif_output" && "${{ parameters.continueOnResourceDestroy }}" != "true" && "${{ parameters.continueOnResourceDestroy }}" != "True" ]]; then
                 echo "ERROR: The deployment will change resources. Failing pipeline as approval is not given."
                 exit 1
               else
