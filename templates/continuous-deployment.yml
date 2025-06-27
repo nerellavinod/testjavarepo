@@ -53,6 +53,26 @@ jobs:
               fi
 
         - task: AzureCLI@2
+          displayName: 'What-If: Detect Resource Changes Before Deployment'
+          inputs:
+            azureSubscription: ${{ parameters.azureSubscription }}
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              echo "Running what-if deployment to detect changes..."
+              whatif_output=$(az deployment group what-if \
+                --resource-group rg-${{ parameters.environment }}-test \
+                --template-file infra/main.bicep \
+                --parameters environmentName=${{ parameters.environment }} acrName=${{ parameters.acrName }} principalId=${{ parameters.AZURE_PRINCIPAL_ID }} location=${{ parameters.location }} \
+                --query "properties.changes" -o tsv)
+              if [[ -n "$whatif_output" && "${{ parameters.continueOnResourceDestroy }}" != "true" ]]; then
+                echo "ERROR: The deployment will change resources. Failing pipeline as approval is not given."
+                exit 1
+              else
+                echo "No changes detected or approval given. Proceeding with deployment."
+              fi
+
+        - task: AzureCLI@2
           displayName: 'Create and Push Placeholder Images'
           inputs:
             azureSubscription: ${{ parameters.azureSubscription }}
