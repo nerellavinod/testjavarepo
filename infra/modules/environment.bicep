@@ -68,6 +68,13 @@ resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2024-02-02-p
     }
   }
   tags: tags
+
+  resource aspireDashboard 'dotNetComponents' = {
+    name: 'aspire-dashboard'
+    properties: {
+      componentType: 'AspireDashboard'
+    }
+  }
 }
 
 resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
@@ -98,15 +105,6 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
   tags: tags
 }
 
-resource aspireDashboard 'dotNetComponents' = {
-  name: 'aspire-dashboard'
-  location: location
-  properties: {
-    componentType: 'AspireDashboard'
-  }
-  tags: tags
-}
-
 output FUNCTION_APP_NAME string = functionApp.name
 output FUNCTION_APP_ID string = functionApp.id
 output FUNCTION_APP_DEFAULT_HOST_NAME string = functionApp.properties.defaultHostName
@@ -116,7 +114,7 @@ output MANAGED_IDENTITY_PRINCIPAL_ID string = managedIdentity.properties.princip
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.properties.loginServer
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = managedIdentity.id
 output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.name
-output ASPIRE_DASHBOARD_NAME string = aspireDashboard.name
-output ASPIRE_DASHBOARD_ID string = aspireDashboard.id
+output ASPIRE_DASHBOARD_NAME string = containerAppEnvironment::aspireDashboard.name
+output ASPIRE_DASHBOARD_ID string = containerAppEnvironment::aspireDashboard.id
 output AZURE_LOG_ANALYTICS_WORKSPACE_NAME string = logAnalyticsWorkspace.name
 output AZURE_LOG_ANALYTICS_WORKSPACE_ID string = logAnalyticsWorkspace.id
