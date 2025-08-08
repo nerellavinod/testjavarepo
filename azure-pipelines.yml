@@ -73,7 +73,7 @@ steps:
       docker push $(acrName).azurecr.io/apiservice:latest
       docker push $(acrName).azurecr.io/cache:latest
 
-# --- Validation Step with minimal output ---
+# --- Validation Step with jq parsing to avoid Azure CLI bug ---
 - task: AzureCLI@2
   displayName: 'Validate Infrastructure Deployment'
   inputs:
@@ -93,11 +93,9 @@ steps:
             acrName=$(acrName) \
             principalId=$(AZURE_PRINCIPAL_ID) \
             location=$(location) \
-        --only-show-errors \
-        --query "properties.provisioningState" \
-        -o tsv
+        --only-show-errors -o json | jq -r '.properties.provisioningState'
 
-# --- Deploy Step with minimal output ---
+# --- Deploy Step with jq parsing to avoid Azure CLI bug ---
 - task: AzureCLI@2
   displayName: 'Deploy Infrastructure (Complete Mode)'
   inputs:
@@ -119,9 +117,7 @@ steps:
             principalId=$(AZURE_PRINCIPAL_ID) \
             location=$(location) \
         --mode Complete \
-        --only-show-errors \
-        --query "properties.provisioningState" \
-        -o tsv
+        --only-show-errors -o json | jq -r '.properties.provisioningState'
 
 - task: AzureCLI@2
   displayName: 'Verify Final Deployment'
