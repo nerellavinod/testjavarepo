@@ -21,7 +21,7 @@ parameters:
   default: 'uksouth'
 
 variables:
-  azureSubscription: 'bicep-serviceconnetion-tempp'
+  azureSubscription: 'TempAugserviceconnection'
   environment: ${{ parameters.environmentType }}
   location: ${{ parameters.location }}
   acrName: 'essdevacrtemp'
