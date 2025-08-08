@@ -38,18 +38,6 @@ steps:
     packageType: 'sdk'
     version: '9.x'
 
-# NEW: Upgrade Azure CLI to latest to avoid known CLI bugs
-- task: AzureCLI@2
-  displayName: 'Upgrade Azure CLI'
-  inputs:
-    azureSubscription: '$(azureSubscription)'
-    scriptType: 'bash'
-    scriptLocation: 'inlineScript'
-    inlineScript: |
-      echo "Upgrading Azure CLI..."
-      az upgrade --yes
-      az version
-
 - task: AzureCLI@2
   displayName: 'Safety Check - List Resources'
   inputs:
@@ -85,7 +73,7 @@ steps:
       docker push $(acrName).azurecr.io/apiservice:latest
       docker push $(acrName).azurecr.io/cache:latest
 
-# NEW: Validation step before actual deployment
+# --- Validation Step with minimal output ---
 - task: AzureCLI@2
   displayName: 'Validate Infrastructure Deployment'
   inputs:
@@ -105,9 +93,11 @@ steps:
             acrName=$(acrName) \
             principalId=$(AZURE_PRINCIPAL_ID) \
             location=$(location) \
-        --mode Complete \
-        --output json
+        --only-show-errors \
+        --query "properties.provisioningState" \
+        -o tsv
 
+# --- Deploy Step with minimal output ---
 - task: AzureCLI@2
   displayName: 'Deploy Infrastructure (Complete Mode)'
   inputs:
@@ -130,7 +120,8 @@ steps:
             location=$(location) \
         --mode Complete \
         --only-show-errors \
-        --output json
+        --query "properties.provisioningState" \
+        -o tsv
 
 - task: AzureCLI@2
   displayName: 'Verify Final Deployment'
@@ -141,3 +132,9 @@ steps:
     inlineScript: |
       echo "Final resources after deployment:"
       az resource list -g rg-$(environment)-test --query "[].{name:name, type:type}" -o table
+
+  env:
+    AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
+    AZURE_ENV_NAME: $(environment)
+    AZURE_LOCATION: $(location)
+    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
