@@ -38,6 +38,18 @@ steps:
     packageType: 'sdk'
     version: '9.x'
 
+# NEW: Upgrade Azure CLI to latest to avoid known CLI bugs
+- task: AzureCLI@2
+  displayName: 'Upgrade Azure CLI'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      echo "Upgrading Azure CLI..."
+      az upgrade --yes
+      az version
+
 - task: AzureCLI@2
   displayName: 'Safety Check - List Resources'
   inputs:
@@ -62,10 +74,8 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      # Login to ACR
       az acr login -n $(acrName)
       
-      # Create and push placeholder images
       echo "FROM mcr.microsoft.com/dotnet/aspnet:7.0" > Dockerfile
       docker build -t $(acrName).azurecr.io/webfrontend:latest .
       docker build -t $(acrName).azurecr.io/apiservice:latest .
@@ -75,6 +85,29 @@ steps:
       docker push $(acrName).azurecr.io/apiservice:latest
       docker push $(acrName).azurecr.io/cache:latest
 
+# NEW: Validation step before actual deployment
+- task: AzureCLI@2
+  displayName: 'Validate Infrastructure Deployment'
+  inputs:
+    azureSubscription: '$(azureSubscription)'
+    scriptType: 'bash'
+    scriptLocation: 'inlineScript'
+    inlineScript: |
+      set -e
+      az account set --subscription $(AZURE_SUBSCRIPTION_ID)
+
+      echo "Validating Bicep template..."
+      az deployment group validate \
+        --resource-group rg-$(environment)-test \
+        --template-file infra/main.bicep \
+        --parameters \
+            environmentName=$(environment) \
+            acrName=$(acrName) \
+            principalId=$(AZURE_PRINCIPAL_ID) \
+            location=$(location) \
+        --mode Complete \
+        --output json
+
 - task: AzureCLI@2
   displayName: 'Deploy Infrastructure (Complete Mode)'
   inputs:
@@ -83,8 +116,6 @@ steps:
     scriptLocation: 'inlineScript'
     inlineScript: |
       set -e
-
-      echo "Setting Azure subscription..."
       az account set --subscription $(AZURE_SUBSCRIPTION_ID)
 
       echo "Deploying infrastructure in Complete mode..."
@@ -97,7 +128,9 @@ steps:
             acrName=$(acrName) \
             principalId=$(AZURE_PRINCIPAL_ID) \
             location=$(location) \
-        --mode Complete
+        --mode Complete \
+        --only-show-errors \
+        --output json
 
 - task: AzureCLI@2
   displayName: 'Verify Final Deployment'
@@ -108,9 +141,3 @@ steps:
     inlineScript: |
       echo "Final resources after deployment:"
       az resource list -g rg-$(environment)-test --query "[].{name:name, type:type}" -o table
-
-  env:
-    AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
-    AZURE_ENV_NAME: $(environment)
-    AZURE_LOCATION: $(location)
-    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
