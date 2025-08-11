@@ -43,7 +43,7 @@ steps:
               break
             }
           } catch {
-            Write-Host "Attempt $i: Health check failed for $url"
+            Write-Host ("Attempt $i: Health check failed for $url")
           }
           if ($i -lt $retries) { Start-Sleep -Seconds $sleep }
         }
