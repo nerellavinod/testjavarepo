@@ -29,8 +29,8 @@ variables:
   AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
   # Add variables for health check endpoints (customize as needed for your test environment)
   FSSHealthUrl: 'https://filesiat.admiralty.co.uk/health'
-  EFSHealthUrl: 'https://dummy-efs-service.example.com/health'
-  SCSHealthUrl: 'https://dummy-scs-service.example.com/health'
+  EFSHealthUrl: 'https://aspire-dashboard.ext.mangomeadow-42e84c72.uksouth.azurecontainerapps.io/health'
+  SCSHealthUrl: 'https://adds-mocks-efs.ashymushroom-d9976f65.uksouth.azurecontainerapps.io/fss/health'
 
 steps:
 - checkout: self
@@ -142,18 +142,12 @@ steps:
     AZURE_LOCATION: $(location)
     AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
 
-# Add a post-deployment health check step (example, place after deployment steps)
-- task: Bash@3
-  displayName: 'Post-Deployment Health Check'
-  inputs:
-    targetType: 'inline'
-    script: |
-      for url in "$(EFSHealthUrl)" "$(FSSHealthUrl)" "$(SCSHealthUrl)"; do
-        echo "Checking $url"
-        status=$(curl -s -o /dev/null -w "%{http_code}" $url)
-        if [ "$status" -ne 200 ]; then
-          echo "Health check failed for $url"
-          exit 1
-        fi
-      done
-      echo "All health checks passed."
+# Remove the inline Bash health check and use the new template
+- template: healthcheck-validation.yml
+  parameters:
+    endpoints:
+      - '$(EFSHealthUrl)'
+      - '$(FSSHealthUrl)'
+      - '$(SCSHealthUrl)'
+    waitTimeInMinute: 5
+    sleepTimeInSecond: 15

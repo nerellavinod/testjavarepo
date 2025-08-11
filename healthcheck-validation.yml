@@ -1,0 +1,65 @@
+# Post-Deployment Health Check (Polling & Retry)
+parameters:
+  - name: endpoints
+    type: object
+    default:
+      - '$(EFSHealthUrl)'
+      - '$(FSSHealthUrl)'
+      - '$(SCSHealthUrl)'
+  - name: waitTimeInMinute
+    type: number
+    default: 5
+  - name: sleepTimeInSecond
+    type: number
+    default: 15
+  - name: retryAttempts
+    type: number
+    default: 3
+
+steps:
+- task: PowerShell@2
+  displayName: 'Post-Deployment Health Check (Polling & Retry)'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $endpoints = @(
+        "${{ parameters.endpoints[0] }}",
+        "${{ parameters.endpoints[1] }}",
+        "${{ parameters.endpoints[2] }}"
+      )
+      $waitTimeInMinute = ${{ parameters.waitTimeInMinute }}
+      $sleepTimeInSecond = ${{ parameters.sleepTimeInSecond }}
+      $retryAttempts = ${{ parameters.retryAttempts }}
+
+      function Test-HealthEndpoint {
+        param($url, $retries, $sleep)
+        $success = $false
+        for ($i = 1; $i -le $retries; $i++) {
+          try {
+            $response = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 30
+            if ($response.StatusCode -eq 200) {
+              Write-Host "Health check passed for $url"
+              $success = $true
+              break
+            }
+          } catch {
+            Write-Host "Attempt $i: Health check failed for $url"
+          }
+          if ($i -lt $retries) { Start-Sleep -Seconds $sleep }
+        }
+        return $success
+      }
+
+      foreach ($baseUrl in $endpoints) {
+        if ([string]::IsNullOrWhiteSpace($baseUrl)) {
+          Write-Host "Skipping empty endpoint."
+          continue
+        }
+        foreach ($endpoint in @('/health', '/alive')) {
+          $fullUrl = $baseUrl.TrimEnd('/') + $endpoint
+          if (-not (Test-HealthEndpoint -url $fullUrl -retries $retryAttempts -sleep $sleepTimeInSecond)) {
+            Write-Error "Service $fullUrl was not up after $retryAttempts attempts."
+            throw "Error"
+          }
+        }
+      }
