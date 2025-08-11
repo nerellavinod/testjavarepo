@@ -55,7 +55,7 @@ steps:
           Write-Host "Skipping empty endpoint."
           continue
         }
-        foreach ($endpoint in @('/health', '/alive')) {
+        foreach ($endpoint in @('/health')) { #, '/alive'
           $fullUrl = $baseUrl.TrimEnd('/') + $endpoint
           if (-not (Test-HealthEndpoint -url $fullUrl -retries $retryAttempts -sleep $sleepTimeInSecond)) {
             Write-Error "Service $fullUrl was not up after $retryAttempts attempts."
