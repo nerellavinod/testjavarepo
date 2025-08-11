@@ -28,9 +28,9 @@ variables:
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
   AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
   # Add variables for health check endpoints (customize as needed for your test environment)
-  EFSHealthUrl: 'https://localhost:5001/health'
-  FSSHealthUrl: 'https://fss-service/health'
-  SCSHealthUrl: 'https://scs-service/health'
+  FSSHealthUrl: 'https://filesiat.admiralty.co.uk/health'
+  EFSHealthUrl: 'https://dummy-efs-service.example.com/health'
+  SCSHealthUrl: 'https://dummy-scs-service.example.com/health'
 
 steps:
 - checkout: self
