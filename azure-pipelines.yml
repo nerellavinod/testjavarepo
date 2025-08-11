@@ -28,9 +28,9 @@ variables:
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
   AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
   # Add variables for health check endpoints (customize as needed for your test environment)
-  FSSHealthUrl: 'https://filesiat.admiralty.co.uk/health'
-  EFSHealthUrl: 'https://aspire-dashboard.ext.mangomeadow-42e84c72.uksouth.azurecontainerapps.io/health'
-  SCSHealthUrl: 'https://adds-mocks-efs.ashymushroom-d9976f65.uksouth.azurecontainerapps.io/fss/health'
+  FSSHealthUrl: 'https://filesiat.admiralty.co.uk'
+  EFSHealthUrl: 'https://aspire-dashboard.ext.mangomeadow-42e84c72.uksouth.azurecontainerapps.io'
+  SCSHealthUrl: 'https://adds-mocks-efs.ashymushroom-d9976f65.uksouth.azurecontainerapps.io/fss'
 
 steps:
 - checkout: self
