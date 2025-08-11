@@ -30,7 +30,7 @@ variables:
   # Add variables for health check endpoints (customize as needed for your test environment)
   FSSHealthUrl: 'https://filesiat.admiralty.co.uk'
   EFSHealthUrl: 'https://aspire-dashboard.ext.mangomeadow-42e84c72.uksouth.azurecontainerapps.io'
-  SCSHealthUrl: 'https://adds-mocks-efs.ashymushroom-d9976f65.uksouth.azurecontainerapps.io/fss'
+  #SCSHealthUrl: 'https://adds-mocks-efs.ashymushroom-d9976f65.uksouth.azurecontainerapps.io/fss'
 
 steps:
 - checkout: self
@@ -123,26 +123,21 @@ steps:
         --mode Complete \
         --only-show-errors -o json | jq -r '.properties.provisioningState'
 
+# --- Get SCS Health URL from Bicep Output (must be before health check) ---
 - task: AzureCLI@2
-  displayName: 'Verify Final Deployment'
+  displayName: 'Get SCS Health URL from Bicep Output'
   inputs:
     azureSubscription: '$(azureSubscription)'
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      echo "Checking deployment state..."
-      az deployment group show \
-        --name "deployment-$(Build.BuildId)" \
+      scs_url=$(az deployment group show \
         --resource-group rg-$(environment)-test \
-        -o json | jq -r '.properties.provisioningState'
+        --name "deployment-$(Build.BuildId)" \
+        --query "properties.outputs.scsHealthUrl.value" -o tsv)
+      echo "##vso[task.setvariable variable=SCSHealthUrl]$scs_url"
 
-  env:
-    AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
-    AZURE_ENV_NAME: $(environment)
-    AZURE_LOCATION: $(location)
-    AZURE_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
-
-# Remove the inline Bash health check and use the new template
+# --- Health Check Step ---
 - template: healthcheck-validation.yml
   parameters:
     endpoints:

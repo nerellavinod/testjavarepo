@@ -5,7 +5,7 @@ parameters:
     default:
       - '$(EFSHealthUrl)'
       - '$(FSSHealthUrl)'
-      - '$(SCSHealthUrl)'
+      - '$(SCSHealthUrl)'   # This is now set dynamically!
   - name: waitTimeInMinute
     type: number
     default: 5

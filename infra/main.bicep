@@ -36,3 +36,4 @@ output MANAGED_IDENTITY_PRINCIPAL_ID string = resources.outputs.MANAGED_IDENTITY
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = resources.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = resources.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
 output AZURE_CONTAINER_REGISTRY_NAME string = resources.outputs.AZURE_CONTAINER_REGISTRY_NAME
+output scsHealthUrl string = 'https://${efs-orchestrator}.${uksouth.azurecontainerapps.io}/fss'
