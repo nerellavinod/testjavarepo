@@ -137,6 +137,10 @@ steps:
         --query "properties.outputs.scsHealthUrl.value" -o tsv)
       echo "##vso[task.setvariable variable=SCSHealthUrl]$scs_url"
 
+- script: |
+    echo "SCSHealthUrl is: $(SCSHealthUrl)"
+  displayName: 'Debug: Show SCSHealthUrl'
+
 # --- Health Check Step ---
 - template: healthcheck-validation.yml
   parameters:
