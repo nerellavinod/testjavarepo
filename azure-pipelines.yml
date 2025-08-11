@@ -126,8 +126,11 @@ steps:
     scriptType: 'bash'
     scriptLocation: 'inlineScript'
     inlineScript: |
-      echo "Final resources after deployment:"
-      az resource list -g rg-$(environment)-test --query "[].{name:name, type:type}" -o table
+      echo "Checking deployment state..."
+      az deployment group show \
+        --name "deployment-$(Build.BuildId)" \
+        --resource-group rg-$(environment)-test \
+        -o json | jq -r '.properties.provisioningState'
 
   env:
     AZURE_PRINCIPAL_ID: $(AZURE_PRINCIPAL_ID)
