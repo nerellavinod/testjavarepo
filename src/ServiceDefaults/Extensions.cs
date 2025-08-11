@@ -7,6 +7,7 @@ using Microsoft.Extensions.ServiceDiscovery;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
+using HealthChecks.Uris;
 
 namespace Microsoft.Extensions.Hosting;
 
@@ -93,7 +94,10 @@ public static class Extensions
     {
         builder.Services.AddHealthChecks()
             // Add a default liveness check to ensure app is responsive
-            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
+            .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"])
+            // Add health checks for dependent services (replace URLs with your actual endpoints)
+            .AddUrlGroup(new Uri("https://fss-service/health"), name: "FSS")
+            .AddUrlGroup(new Uri("https://scs-service/health"), name: "SCS");
 
         return builder;
     }
