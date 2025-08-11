@@ -30,10 +30,34 @@ module resources 'modules/environment.bicep' = {
   }
 }
 
+// Add SCS Container App resource
+resource scsApp 'Microsoft.App/containerApps@2023-05-01' = {
+  name: 'adds-mocks-efs'
+  location: location
+  properties: {
+    managedEnvironmentId: resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 80
+      }
+    }
+    template: {
+      containers: [
+        {
+          name: 'scs-container'
+          image: 'mcr.microsoft.com/dotnet/aspnet:7.0'
+        }
+      ]
+    }
+  }
+}
+
 output MANAGED_IDENTITY_CLIENT_ID string = resources.outputs.MANAGED_IDENTITY_CLIENT_ID
 output MANAGED_IDENTITY_NAME string = resources.outputs.MANAGED_IDENTITY_NAME
 output MANAGED_IDENTITY_PRINCIPAL_ID string = resources.outputs.MANAGED_IDENTITY_PRINCIPAL_ID
 output AZURE_CONTAINER_REGISTRY_ENDPOINT string = resources.outputs.AZURE_CONTAINER_REGISTRY_ENDPOINT
 output AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID string = resources.outputs.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID
 output AZURE_CONTAINER_REGISTRY_NAME string = resources.outputs.AZURE_CONTAINER_REGISTRY_NAME
-output scsHealthUrl string = 'https://${efs-orchestrator}.${uksouth.azurecontainerapps.io}/fss'
+// Output the SCS health URL using the app name and environment domain
+output scsHealthUrl string = 'https://${scsApp.name}.${resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN}/fss'
