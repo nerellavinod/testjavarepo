@@ -1,0 +1,118 @@
+﻿trigger:
+  - main
+
+variables:
+  azureSubscription: 'TempAugserviceconnection'
+  environment: ${{ parameters.environmentType }}
+  location: ${{ parameters.location }}
+  acrName: 'essdevacrtemp'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
+  appServiceName: '<your-app-service-name>'
+  terraformDirectory: 'terraform'
+  azureSubscription: 'TempAugserviceconnection'
+  environment: ${{ parameters.environmentType }}
+  location: ${{ parameters.location }}
+  acrName: 'essdevacrtemp'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
+  appServiceName: '<your-app-service-name>'
+  terraformDirectory: 'terraform'
+  azureSubscription: 'TempAugserviceconnection'
+  environment: ${{ parameters.environmentType }}
+  location: ${{ parameters.location }}
+  acrName: 'essdevacrtemp'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
+  appServiceName: '<your-app-service-name>'
+  terraformDirectory: 'terraform'
+  azureSubscription: 'TempAugserviceconnection'
+  environment: ${{ parameters.environmentType }}
+  location: ${{ parameters.location }}
+  acrName: 'essdevacrtemp'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
+  appServiceName: '<your-app-service-name>'
+  terraformDirectory: 'terraform'
+  azureSubscription: 'TempAugserviceconnection'
+  environment: ${{ parameters.environmentType }}
+  location: ${{ parameters.location }}
+  acrName: 'essdevacrtemp'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
+  appServiceName: '<your-app-service-name>'
+  terraformDirectory: 'terraform'
+  azureSubscription: 'TempAugserviceconnection'
+  environment: ${{ parameters.environmentType }}
+  location: ${{ parameters.location }}
+  acrName: 'essdevacrtemp'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
+  appServiceName: '<your-app-service-name>'
+  terraformDirectory: 'terraform'
+  
+steps:
+  - checkout: self
+    clean: true
+
+  # Install Node.js
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '18.x'
+    displayName: 'Install Node.js'
+
+  # Build Angular app
+  - script: |
+      npm install
+      npm run build -- --configuration production
+    displayName: 'Build Angular App'
+
+  # Publish build artifacts
+  - task: PublishBuildArtifacts@1
+    inputs:
+      pathToPublish: 'dist/uitestdevops'
+      artifactName: 'drop'
+    displayName: 'Publish Build Artifacts'
+
+  # Install Terraform
+  - task: TerraformInstaller@1
+    inputs:
+      terraformVersion: 'latest'
+    displayName: 'Install Terraform'
+
+  # Terraform Init
+  - task: TerraformCLI@0
+    displayName: 'Terraform Init'
+    inputs:
+      command: 'init'
+      workingDirectory: 'terraform'
+      backendType: 'azurerm'
+      allowTelemetryCollection: false
+
+  # Terraform Plan
+  - task: TerraformCLI@0
+    displayName: 'Terraform Plan'
+    inputs:
+      command: 'plan'
+      workingDirectory: 'terraform'
+      environmentServiceName: '<your-azure-subscription>'
+      allowTelemetryCollection: false
+
+  # Terraform Apply
+  - task: TerraformCLI@0
+    displayName: 'Terraform Apply'
+    inputs:
+      command: 'apply'
+      workingDirectory: 'terraform'
+      environmentServiceName: '<your-azure-subscription>'
+      allowTelemetryCollection: false
+      args: '-auto-approve'
+
+  # Deploy to Azure Web App
+  - task: AzureWebApp@1
+    inputs:
+      azureSubscription: '<your-azure-subscription>'
+      appType: 'webApp'
+      appName: '<your-app-service-name>'
+      package: '$(System.DefaultWorkingDirectory)/drop'
+    displayName: 'Deploy to Azure Web App'

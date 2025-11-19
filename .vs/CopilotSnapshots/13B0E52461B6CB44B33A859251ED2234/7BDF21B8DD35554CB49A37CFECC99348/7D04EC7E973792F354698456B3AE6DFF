@@ -1,0 +1,111 @@
+﻿trigger:
+  - main
+
+parameters:
+  - name: environmentType
+    displayName: 'Environment Type'
+    type: string
+    default: 'dev'
+    values:
+      - dev
+      - test
+      - prod
+  - name: location
+    displayName: 'Deployment Location'
+    type: string
+    default: 'uksouth'
+
+variables:
+  azureSubscription: 'TempAugserviceconnection'
+  environment: ${{ parameters.environmentType }}
+  location: ${{ parameters.location }}
+  acrName: 'essdevacrtemp'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  AZURE_PRINCIPAL_ID: 'b3df3eba-4b33-4513-b9a4-e5c480c3727b'
+  appServiceName: 'your-app-service-name'  # Replace with your actual Azure Web App name
+  terraformDirectory: 'terraform'
+
+stages:
+- stage: Build
+  displayName: 'Build Angular App'
+  jobs:
+    - job: BuildAngular
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+          clean: true
+        
+        - task: NodeTool@0
+          inputs:
+            versionSpec: '18.x'
+          displayName: 'Install Node.js'
+        
+        - script: |
+            npm install
+            npm run build -- --configuration production
+          displayName: 'Build Angular App'
+        
+        - task: PublishBuildArtifacts@1
+          inputs:
+            pathToPublish: 'dist/uitestdevops'
+            artifactName: 'drop'
+          displayName: 'Publish Build Artifacts'
+
+- stage: Terraform
+  displayName: 'Provision Infrastructure'
+  dependsOn: Build
+  jobs:
+    - job: TerraformDeploy
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - task: TerraformInstaller@1
+          inputs:
+            terraformVersion: 'latest'
+          displayName: 'Install Terraform'
+        
+        - task: TerraformCLI@0
+          displayName: 'Terraform Init'
+          inputs:
+            command: 'init'
+            workingDirectory: '$(terraformDirectory)'
+            backendType: 'azurerm'
+            allowTelemetryCollection: false
+        
+        - task: TerraformCLI@0
+          displayName: 'Terraform Plan'
+          inputs:
+            command: 'plan'
+            workingDirectory: '$(terraformDirectory)'
+            environmentServiceName: '$(azureSubscription)'
+            allowTelemetryCollection: false
+        
+        - task: TerraformCLI@0
+          displayName: 'Terraform Apply'
+          inputs:
+            command: 'apply'
+            workingDirectory: '$(terraformDirectory)'
+            environmentServiceName: '$(azureSubscription)'
+            allowTelemetryCollection: false
+            commandOptions: '-auto-approve'
+
+- stage: Deploy
+  displayName: 'Deploy to Azure Web App'
+  dependsOn: Terraform
+  jobs:
+    - job: DeployWebApp
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - download: current
+          artifact: drop
+          displayName: 'Download Build Artifacts'
+        
+        - task: AzureWebApp@1
+          inputs:
+            azureSubscription: '$(azureSubscription)'
+            appType: 'webApp'
+            appName: '$(appServiceName)'
+            package: '$(Pipeline.Workspace)/drop'
+          displayName: 'Deploy to Azure Web App'

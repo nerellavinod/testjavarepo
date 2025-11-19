@@ -1,0 +1,19 @@
+﻿trigger:
+  - main
+
+parameters:
+  - name: environmentType
+    displayName: 'Environment Type'
+    type: string
+    default: 'dev'
+    values:
+      - dev
+      - test
+      - prod
+  - name: location
+    displayName: 'Deployment Location'
+    type: string
+    default: 'canadacentral'  # Changed to match your Azure portal selection
+
+variables:
+  azure

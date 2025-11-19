@@ -1,0 +1,72 @@
+﻿trigger:
+  - main
+
+parameters:
+  - name: environmentType
+    displayName: 'Environment Type'
+    type: string
+    default: 'dev'
+    values:
+      - dev
+      - test
+      - prod
+  - name: location
+    displayName: 'Deployment Location'
+    type: string
+    default: 'uksouth'
+
+variables:
+  azureSubscription: 'TempAugserviceconnection'
+  environment: ${{ parameters.environmentType }}
+  location: ${{ parameters.location }}
+  resourceGroupName: 'tempaugrg'
+  webAppName: 'Uiangularwebapp'
+  # Removed hardcoded subscription ID - use Azure DevOps Pipeline Variable instead
+
+stages:
+- stage: Build
+  displayName: 'Build Angular App'
+  jobs:
+    - job: BuildAngular
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+          clean: true
+        
+        - task: NodeTool@0
+          inputs:
+            versionSpec: '20.x'
+          displayName: 'Install Node.js 20 LTS'
+        
+        - script: |
+            npm install
+            npm run build -- --configuration production
+          displayName: 'Build Angular App'
+        
+        - task: PublishBuildArtifacts@1
+          inputs:
+            pathToPublish: 'dist/uitestdevops'
+            artifactName: 'drop'
+          displayName: 'Publish Build Artifacts'
+
+- stage: Deploy
+  displayName: 'Deploy to Azure Web App'
+  dependsOn: Build
+  jobs:
+    - job: DeployWebApp
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - download: current
+          artifact: drop
+          displayName: 'Download Build Artifacts'
+        
+        - task: AzureWebApp@1
+          inputs:
+            azureSubscription: '$(azureSubscription)'
+            appType: 'webAppLinux'
+            appName: '$(webAppName)'
+            package: '$(Pipeline.Workspace)/drop'
+            runtimeStack: 'NODE|20-lts'
+          displayName: 'Deploy Angular App to Azure Web App'
