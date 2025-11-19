@@ -20,7 +20,7 @@ variables:
   environment: ${{ parameters.environmentType }}
   location: ${{ parameters.location }}
   resourceGroupName: 'tempaugrg'
-  webAppName: 'uiangularwebapp-b2e2amgqafdde5eh'
+  webAppName: 'Uiangularwebapp'
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
 
 stages:
