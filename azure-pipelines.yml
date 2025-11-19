@@ -43,10 +43,28 @@ stages:
             npm install
             npm run build -- --configuration production
           displayName: 'Build Angular App'
+
+        # Ensure the build output is placed into the artifact staging directory
+        - task: CopyFiles@2
+          inputs:
+            SourceFolder: 'dist/uitestdevops'
+            Contents: '**'
+            TargetFolder: '$(Build.ArtifactStagingDirectory)/angular_dist'
+          displayName: 'Copy build output to: $(Build.ArtifactStagingDirectory)/angular_dist'
+
+        # Archive the build output into a single zip so AzureWebApp deploys the package correctly
+        - task: ArchiveFiles@2
+          inputs:
+            rootFolderOrFile: '$(Build.ArtifactStagingDirectory)/angular_dist'
+            includeRootFolder: false
+            archiveType: 'zip'
+            archiveFile: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
+            replaceExistingArchive: true
+          displayName: 'Create zip of build output'
         
         - task: PublishBuildArtifacts@1
           inputs:
-            pathToPublish: 'dist/uitestdevops'
+            pathToPublish: '$(Build.ArtifactStagingDirectory)'
             artifactName: 'drop'
           displayName: 'Publish Build Artifacts'
 
@@ -67,6 +85,10 @@ stages:
             azureSubscription: '$(azureSubscription)'
             appType: 'webAppLinux'
             appName: '$(webAppName)'
-            package: '$(Pipeline.Workspace)/drop'
+            # Point to the zip created in the Build stage
+            package: '$(Pipeline.Workspace)/drop/angularapp.zip'
             runtimeStack: 'NODE|20-lts'
+            # Ensure App Service runs the package directly
+            appSettings: |
+              -WEBSITE_RUN_FROM_PACKAGE 1
           displayName: 'Deploy Angular App to Azure Web App'
