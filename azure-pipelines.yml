@@ -5,11 +5,10 @@ parameters:
 - name: environmentType
   displayName: 'Environment Type'
   type: string
-  default: 'dev'
+  default: 'qa'
   values:
-    - dev
-    - test
-    - prod
+    - qa
+    - test    
 - name: location
   displayName: 'Deployment Location'
   type: string
@@ -25,6 +24,7 @@ parameters:
 
 variables:
   azureSubscription: 'TempAugserviceconnection'
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
   environment: ${{ parameters.environmentType }}
   location: ${{ parameters.location }}
   resourceGroupName: 'tempaugrg'
@@ -112,11 +112,28 @@ stages:
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/*coverage.xml'
         reportDirectory: 'coverage/'
 
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Angular Artifacts
+    # --- SSR ZIP & ARTIFACT PUBLISH ---
+    - task: CopyFiles@2
       inputs:
-        PathtoPublish: '$(Build.SourcesDirectory)/dist'
-        ArtifactName: AngularApp
+        SourceFolder: '.'
+        Contents: 'package.json'
+        TargetFolder: 'dist/uitestdevops'
+      displayName: 'Copy package.json to dist'
+
+    - task: ArchiveFiles@2
+      inputs:
+        rootFolderOrFile: 'dist/uitestdevops'
+        includeRootFolder: false
+        archiveType: 'zip'
+        archiveFile: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
+        replaceExistingArchive: true
+      displayName: 'Create deployment package (SSR zip)'
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Angular SSR Artifact
+      inputs:
+        pathToPublish: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
+        artifactName: AngularApp
 
 - stage: Deploy
   displayName: Deploy to Azure Web App
