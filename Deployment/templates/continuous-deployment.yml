@@ -23,7 +23,6 @@ jobs:
         destinationFolder: '$(Pipeline.Workspace)/AngularApp/unzipped'
         cleanDestinationFolder: true
       displayName: 'Extract Angular SSR Artifact'
-      condition: exists('$(Pipeline.Workspace)/AngularApp/*.zip')
 
     - task: AzureWebApp@1
       inputs:
