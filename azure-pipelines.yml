@@ -13,133 +13,69 @@ parameters:
   displayName: 'Deployment Location'
   type: string
   default: 'uksouth'
-- name: SnykOnlyFailIfFixable
-  displayName: "Snyk should only fail the pipeline if it knows of a fix for an issue"
-  type: boolean
-  default: false
-- name: SnykPassOnIssues
-  displayName: "Prevent Snyk from failing the pipeline"
-  type: boolean
-  default: false
+- name: Container
+  displayName: 'Container for Build/Test'
+  type: string
+  default: 'mcr.microsoft.com/azure-pipelines/node8-typescript:latest'
 
 variables:
-  azureSubscription: 'TempAugserviceconnection'
-  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+  - group: uitestdevops-library
+  azureSubscription: $(azureSubscription)
   environment: ${{ parameters.environmentType }}
   location: ${{ parameters.location }}
-  resourceGroupName: 'tempaugrg'
-  webAppName: 'Uiangularwebapp'
+  resourceGroupName: $(resourceGroupName)
+  webAppName: $(webAppName)
   NodeVersion: 20.x
-  snykOrgID: '<YOUR_SNYK_ORG_ID_IF_NEEDED>'
   BuildCounter: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)]
+  DeploymentPool: 'Azure Pipelines'
 
 stages:
-- stage: VulnerabilityChecks
-  displayName: Snyk Vulnerability Scan
-  jobs:
-  - job: snyk_scan
-    displayName: 'Snyk Security Scan'
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-      - checkout: self
-      - task: NodeTool@0
-        displayName: Install Node.js
-        inputs:
-          versionSpec: '$(NodeVersion)'
-      - script: npm ci
-        displayName: 'npm ci'
-      # - script: |
-      #     npm install -g snyk
-      #     snyk auth $(SNYK_TOKEN)
-      #     snyk test --all-projects --org=$(snykOrgID) $( if ${{ parameters.SnykOnlyFailIfFixable }}; then echo '--fail-on=upgradable'; fi )
-      #   displayName: 'Snyk: Test for Vulnerabilities'
-      #   env:
-      #     SNYK_TOKEN: $(SNYK_TOKEN)
-      # - script: |
-      #     snyk monitor --all-projects --org=$(snykOrgID)
-      #   displayName: 'Snyk: Monitor Project'
-
 - stage: BuildTestPublish
-  displayName: Build, mutation, coverage, publish
-  dependsOn: VulnerabilityChecks
+  displayName: Build, Test, and Publish
   jobs:
-  - job: BuildTest
-    displayName: Build/Test/Mutation/Coverage
+  - template: Deployment/templates/build-test-publish.yml
+    parameters:
+      Container: ${{ parameters.Container }}
+
+- stage: TerraformDeploy
+  displayName: Terraform Provision Web App
+  dependsOn: BuildTestPublish
+  jobs:
+  - job: Terraform
+    displayName: 'Terraform Init/Plan/Apply'
     pool:
       vmImage: 'ubuntu-latest'
     steps:
     - checkout: self
-
-    - task: NodeTool@0
-      displayName: Install Node.js
+    - task: UsePythonVersion@0
       inputs:
-        versionSpec: $(NodeVersion)
-
-    - script: npm ci
-      displayName: 'npm install (ci)'
-
-    # ---- Angular Version Check ----
-    - script: npx ng --version
-      displayName: 'Show Angular CLI Version (ng version)'
-
-    - script: |
-        node -e "console.log('Angular core version: ' + require('./node_modules/@angular/core/package.json').version)"
-      displayName: 'Show @angular/core Version'
-
-    - script: npm run build -- --configuration production
-      displayName: 'Build Angular App'
-
-    - script: npm run test:ci -- --code-coverage --watch=false
-      displayName: 'Run Unit Tests (with Coverage)'
-
-    - script: npx stryker run
-      displayName: 'Run Stryker Mutation Tests'
-      continueOnError: true
-
-    - task: PublishTestResults@2
-      condition: succeededOrFailed()
-      displayName: Publish Unit Test Results
-      inputs:
-        testRunner: 'JUnit'
-        testResultsFiles: '**/TEST-*.xml'
-        testRunTitle: Unit Tests
-
-    - task: PublishCodeCoverageResults@1
-      displayName: Publish Code Coverage Results
-      inputs:
-        codeCoverageTool: 'Cobertura'
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/*coverage.xml'
-        reportDirectory: 'coverage/'
-
-    # --- SSR ZIP & ARTIFACT PUBLISH ---
-    - task: CopyFiles@2
-      inputs:
-        SourceFolder: '.'
-        Contents: 'package.json'
-        TargetFolder: 'dist/uitestdevops'
-      displayName: 'Copy package.json to dist'
-
-    - task: ArchiveFiles@2
-      inputs:
-        rootFolderOrFile: 'dist/uitestdevops'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
-        replaceExistingArchive: true
-      displayName: 'Create deployment package (SSR zip)'
-
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Angular SSR Artifact
-      inputs:
-        pathToPublish: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
-        artifactName: AngularApp
+        versionSpec: '3.x'
+    - powershell: |
+        pwsh Deployment/terraform_conditional_run.ps1 -DeploymentResourceGroupName $(resourceGroupName) -DeploymentStorageAccountName $(tfstateStorageAccountName) -WorkSpace ${{ parameters.environmentType }} -ContinueEvenIfResourcesAreGettingDestroyed $false
+      name: TerraformStep
+      displayName: 'Run Terraform Script'
 
 - stage: Deploy
   displayName: Deploy to Azure Web App
-  dependsOn: BuildTestPublish
+  dependsOn: TerraformDeploy
   jobs:
-  - template: Deployment/templates/continuous-deployment.yml
-    parameters:
-      azureSubscription: ${{ variables.azureSubscription }}
-      webAppName: ${{ variables.webAppName }}
+  - job: DeployWebApp
+    displayName: Deploy Angular App to Azure Web App
+    variables:
+      webapp_url: $[ dependencies.TerraformDeploy.jobs.Terraform.outputs['TerraformStep.webapp_url'] ]
+      webapp_name: $[ dependencies.TerraformDeploy.jobs.Terraform.outputs['TerraformStep.webapp_name'] ]
+    steps:
+    - download: current
+      artifact: AngularApp
+      displayName: 'Download Angular Build Artifact'
+    - task: AzureWebApp@1
+      inputs:
+        azureSubscription: $(azureSubscription)
+        appType: 'webAppLinux'
+        appName: $(webapp_name)
+        package: '$(Pipeline.Workspace)/AngularApp'
+        runtimeStack: 'NODE|20-lts'
+        startUpCommand: 'npx serve -s .'
+      displayName: 'Deploy Angular App to Azure Web App'
+    - script: echo "Web App URL: $(webapp_url)"
+      displayName: 'Show Web App URL'

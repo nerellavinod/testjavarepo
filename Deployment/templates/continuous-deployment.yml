@@ -5,10 +5,13 @@ parameters:
 - name: webAppName
   type: string
   default: ''
+- name: resourceGroupName
+  type: string
+  default: ''
 
 jobs:
 - job: DeployWebApp
-  displayName: Deploy Angular SSR App to Azure Web App
+  displayName: Deploy Angular App to Azure Web App
   pool:
     vmImage: 'ubuntu-latest'
   steps:
@@ -16,20 +19,12 @@ jobs:
       artifact: AngularApp
       displayName: 'Download Angular Build Artifact'
 
-    # Unzip the artifact if it is zipped (adjust if your build already publishes unzipped)
-    - task: ExtractFiles@1
-      inputs:
-        archiveFilePatterns: '$(Pipeline.Workspace)/AngularApp/*.zip'
-        destinationFolder: '$(Pipeline.Workspace)/AngularApp/unzipped'
-        cleanDestinationFolder: true
-      displayName: 'Extract Angular SSR Artifact'
-
     - task: AzureWebApp@1
       inputs:
         azureSubscription: ${{ parameters.azureSubscription }}
         appType: 'webAppLinux'
         appName: ${{ parameters.webAppName }}
-        package: '$(Pipeline.Workspace)/AngularApp/unzipped'
+        package: '$(Pipeline.Workspace)/AngularApp'
         runtimeStack: 'NODE|20-lts'
-        startUpCommand: 'npm install --omit=dev && node server/server.mjs'
-      displayName: 'Deploy Angular SSR App to Azure Web App'
+        startUpCommand: 'npx serve -s .'
+      displayName: 'Deploy Angular App to Azure Web App'
