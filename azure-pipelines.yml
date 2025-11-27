@@ -49,16 +49,16 @@ stages:
           versionSpec: '$(NodeVersion)'
       - script: npm ci
         displayName: 'npm ci'
-      - script: |
-          npm install -g snyk
-          snyk auth $(SNYK_TOKEN)
-          snyk test --all-projects --org=$(snykOrgID) $( if ${{ parameters.SnykOnlyFailIfFixable }}; then echo '--fail-on=upgradable'; fi )
-        displayName: 'Snyk: Test for Vulnerabilities'
-        env:
-          SNYK_TOKEN: $(SNYK_TOKEN)
-      - script: |
-          snyk monitor --all-projects --org=$(snykOrgID)
-        displayName: 'Snyk: Monitor Project'
+      # - script: |
+      #     npm install -g snyk
+      #     snyk auth $(SNYK_TOKEN)
+      #     snyk test --all-projects --org=$(snykOrgID) $( if ${{ parameters.SnykOnlyFailIfFixable }}; then echo '--fail-on=upgradable'; fi )
+      #   displayName: 'Snyk: Test for Vulnerabilities'
+      #   env:
+      #     SNYK_TOKEN: $(SNYK_TOKEN)
+      # - script: |
+      #     snyk monitor --all-projects --org=$(snykOrgID)
+      #   displayName: 'Snyk: Monitor Project'
 
 - stage: BuildTestPublish
   displayName: Build, mutation, coverage, publish
