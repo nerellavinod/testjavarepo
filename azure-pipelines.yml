@@ -67,25 +67,25 @@ stages:
   displayName: Deploy to Azure Web App
   dependsOn: TerraformDeploy
   jobs:
-  - job: DeployWebApp
-    displayName: Deploy Angular App to Azure Web App
-    variables:
-      - name: webapp_url
-        value: $[ dependencies.TerraformDeploy.jobs.Terraform.outputs['TerraformStep.webapp_url'] ]
-      - name: webapp_name
-        value: $[ dependencies.TerraformDeploy.jobs.Terraform.outputs['TerraformStep.webapp_name'] ]
-    steps:
-      - download: current
-        artifact: AngularApp
-        displayName: 'Download Angular Build Artifact'
-      - task: AzureWebApp@1
-        inputs:
-          azureSubscription: $(azureSubscription)
-          appType: 'webAppLinux'
-          appName: $(webapp_name)
-          package: '$(Pipeline.Workspace)/AngularApp'
-          runtimeStack: 'NODE|20-lts'
-          startUpCommand: 'npx serve -s .'
-        displayName: 'Deploy Angular App to Azure Web App'
-      - script: echo "Web App URL: $(webapp_url)"
-        displayName: 'Show Web App URL'
+    - job: DeployWebApp
+      displayName: Deploy Angular App to Azure Web App
+      variables:
+        - name: webapp_url
+          value: $[ dependencies.TerraformDeploy.jobs.Terraform.outputs['TerraformStep.webapp_url'] ]
+        - name: webapp_name
+          value: $[ dependencies.TerraformDeploy.jobs.Terraform.outputs['TerraformStep.webapp_name'] ]
+      steps:
+        - download: current
+          artifact: AngularApp
+          displayName: 'Download Angular Build Artifact'
+        - task: AzureWebApp@1
+          inputs:
+            azureSubscription: $(azureSubscription)
+            appType: 'webAppLinux'
+            appName: $(webapp_name)
+            package: '$(Pipeline.Workspace)/AngularApp'
+            runtimeStack: 'NODE|20-lts'
+            startUpCommand: 'npx serve -s .'
+          displayName: 'Deploy Angular App to Azure Web App'
+        - script: echo "Web App URL: $(webapp_url)"
+          displayName: 'Show Web App URL'
