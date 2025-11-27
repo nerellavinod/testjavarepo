@@ -62,7 +62,7 @@ stages:
             pwsh Deployment/terraform_conditional_run.ps1 `
               -DeploymentResourceGroupName $(resourceGroupName) `
               -DeploymentStorageAccountName $(tfstateStorageAccountName) `
-              -WorkSpace ${{ parameters.environmentType }} `
+              -WorkSpace "${{ parameters.environmentType }}" `
               -ContinueEvenIfResourcesAreGettingDestroyed:$false
           name: TerraformStep
           displayName: 'Run Terraform Script'
