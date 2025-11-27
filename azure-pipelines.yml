@@ -33,7 +33,7 @@ variables:
   - name: NodeVersion
     value: 20.x
   - name: BuildCounter
-    value: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)]
+    value: "$[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)]"
   - name: DeploymentPool
     value: 'Azure Pipelines'
 
