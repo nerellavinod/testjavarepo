@@ -59,7 +59,11 @@ stages:
           inputs:
             versionSpec: '3.x'
         - powershell: |
-            pwsh Deployment/terraform_conditional_run.ps1 -DeploymentResourceGroupName $(resourceGroupName) -DeploymentStorageAccountName $(tfstateStorageAccountName) -WorkSpace ${{ parameters.environmentType }} -ContinueEvenIfResourcesAreGettingDestroyed $false
+            pwsh Deployment/terraform_conditional_run.ps1 `
+              -DeploymentResourceGroupName $(resourceGroupName) `
+              -DeploymentStorageAccountName $(tfstateStorageAccountName) `
+              -WorkSpace ${{ parameters.environmentType }} `
+              -ContinueEvenIfResourcesAreGettingDestroyed:$false
           name: TerraformStep
           displayName: 'Run Terraform Script'
 
