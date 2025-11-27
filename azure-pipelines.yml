@@ -71,9 +71,9 @@ stages:
       displayName: Deploy Angular App to Azure Web App
       variables:
         - name: webapp_url
-          value: $[ dependencies.TerraformDeploy.outputs['TerraformStep.webapp_url'] ]
+          value: $[ dependencies.TerraformDeploy.outputs['Terraform.TerraformStep.webapp_url'] ]
         - name: webapp_name
-          value: $[ dependencies.TerraformDeploy.outputs['TerraformStep.webapp_name'] ]
+          value: $[ dependencies.TerraformDeploy.outputs['Terraform.TerraformStep.webapp_name'] ]
       steps:
         - download: current
           artifact: AngularApp
