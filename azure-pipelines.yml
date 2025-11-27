@@ -20,14 +20,22 @@ parameters:
 
 variables:
   - group: uitestdevops-library
-  azureSubscription: $(azureSubscription)
-  environment: ${{ parameters.environmentType }}
-  location: ${{ parameters.location }}
-  resourceGroupName: $(resourceGroupName)
-  webAppName: $(webAppName)
-  NodeVersion: 20.x
-  BuildCounter: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)]
-  DeploymentPool: 'Azure Pipelines'
+  - name: azureSubscription
+    value: $(azureSubscription)
+  - name: environment
+    value: ${{ parameters.environmentType }}
+  - name: location
+    value: ${{ parameters.location }}
+  - name: resourceGroupName
+    value: $(resourceGroupName)
+  - name: webAppName
+    value: $(webAppName)
+  - name: NodeVersion
+    value: 20.x
+  - name: BuildCounter
+    value: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)]
+  - name: DeploymentPool
+    value: 'Azure Pipelines'
 
 stages:
 - stage: BuildTestPublish
