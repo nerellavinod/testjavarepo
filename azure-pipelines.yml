@@ -1,5 +1,5 @@
 trigger:
-- UiAngulatTest
+  - UiAngulatTest
 
 parameters:
 - name: environmentType
@@ -8,7 +8,7 @@ parameters:
   default: 'qa'
   values:
     - qa
-    - test    
+    - test
 - name: location
   displayName: 'Deployment Location'
   type: string
@@ -41,27 +41,27 @@ stages:
 - stage: BuildTestPublish
   displayName: Build, Test, and Publish
   jobs:
-  - template: Deployment/templates/build-test-publish.yml
-    parameters:
-      Container: ${{ parameters.Container }}
+    - template: Deployment/templates/build-test-publish.yml
+      parameters:
+        Container: ${{ parameters.Container }}
 
 - stage: TerraformDeploy
   displayName: Terraform Provision Web App
   dependsOn: BuildTestPublish
   jobs:
-  - job: Terraform
-    displayName: 'Terraform Init/Plan/Apply'
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - checkout: self
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '3.x'
-    - powershell: |
-        pwsh Deployment/terraform_conditional_run.ps1 -DeploymentResourceGroupName $(resourceGroupName) -DeploymentStorageAccountName $(tfstateStorageAccountName) -WorkSpace ${{ parameters.environmentType }} -ContinueEvenIfResourcesAreGettingDestroyed $false
-      name: TerraformStep
-      displayName: 'Run Terraform Script'
+    - job: Terraform
+      displayName: 'Terraform Init/Plan/Apply'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: self
+        - task: UsePythonVersion@0
+          inputs:
+            versionSpec: '3.x'
+        - powershell: |
+            pwsh Deployment/terraform_conditional_run.ps1 -DeploymentResourceGroupName $(resourceGroupName) -DeploymentStorageAccountName $(tfstateStorageAccountName) -WorkSpace ${{ parameters.environmentType }} -ContinueEvenIfResourcesAreGettingDestroyed $false
+          name: TerraformStep
+          displayName: 'Run Terraform Script'
 
 - stage: Deploy
   displayName: Deploy to Azure Web App
@@ -71,9 +71,9 @@ stages:
       displayName: Deploy Angular App to Azure Web App
       variables:
         - name: webapp_url
-          value: $[ dependencies.TerraformDeploy.outputs['Terraform.TerraformStep.webapp_url'] ]
+          value: "$[ dependencies.TerraformDeploy.outputs['Terraform.TerraformStep.webapp_url'] ]"
         - name: webapp_name
-          value: $[ dependencies.TerraformDeploy.outputs['Terraform.TerraformStep.webapp_name'] ]
+          value: "$[ dependencies.TerraformDeploy.outputs['Terraform.TerraformStep.webapp_name'] ]"
       steps:
         - download: current
           artifact: AngularApp
