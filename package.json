@@ -8,6 +8,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:ci": "ng test --no-watch --no-progress --browsers=ChromeHeadless --code-coverage",
+    "stryker": "stryker run",
+    "stryker:ci": "stryker run --concurrency 2",
     "serve:ssr:uitestdevops": "node dist/uitestdevops/server/server.mjs"
   },
   "prettier": {
@@ -40,6 +42,9 @@
     "@angular/build": "^20.3.10",
     "@angular/cli": "^20.3.10",
     "@angular/compiler-cli": "^20.3.0",
+    "@stryker-mutator/core": "^8.0.0",
+    "@stryker-mutator/karma-runner": "^8.0.0",
+    "@stryker-mutator/typescript-checker": "^8.0.0",
     "@types/express": "^5.0.1",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^20.17.19",
