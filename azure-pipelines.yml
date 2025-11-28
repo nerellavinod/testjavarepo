@@ -90,6 +90,6 @@ stages:
             package: '$(Pipeline.Workspace)/AngularApp'
             runtimeStack: 'NODE|20-lts'
             startUpCommand: 'npx serve -s .'
-          displayName: 'Deploy Angular App to Azure Web App'
-        - script: echo "Web App URL: $(webapp_url)"
-          displayName: 'Show Web App URL'
+         # displayName: 'Deploy Angular App to Azure Web App'
+        #- script: echo "Web App URL: $(webapp_url)"
+        #  displayName: 'Show Web App URL'
