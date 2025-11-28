@@ -1,4 +1,3 @@
-# File: Deployment/templates/deploy-and-webapp.yml
 parameters:
 - name: azureSubscription
   type: string
@@ -29,12 +28,10 @@ jobs:
   container: ${{ parameters.Container }}
   workspace:
     clean: all
-
   strategy:
     runOnce:
       deploy:
         steps:
-
         - download: current
           displayName: Download deployment artifact
           artifact: DeploymentScripts
@@ -43,30 +40,27 @@ jobs:
           displayName: Download web app artifact
           artifact: AngularApp
 
-        # Terraform Execution inside Azure CLI authenticated context
         - task: AzureCLI@2
           name: TerraformStep
           displayName: 'Terraform deployment (Azure CLI authenticated)'
           inputs:
-            azureSubscription: ${{ parameters.azureSubscription }}
-            scriptType: ps
-            scriptLocation: inlineScript
+            azureSubscription: $(azureSubscription)
+            scriptType: 'ps'
+            scriptLocation: 'inlineScript'
             inlineScript: |
               Write-Host "Running terraform_conditional_run.ps1 under AzureCLI context"
-
               pwsh "$(Pipeline.Workspace)/DeploymentScripts/terraform_conditional_run.ps1" `
-                -DeploymentResourceGroupName "${{ parameters.resourceGroupName }}" `
+                -DeploymentResourceGroupName "$(resourceGroupName)" `
                 -DeploymentStorageAccountName "$(tfstateStorageAccountName)" `
                 -WorkSpace "$(environment)" `
                 -ContinueEvenIfResourcesAreGettingDestroyed:${{ parameters.ContinueEvenIfResourcesAreGettingDestroyed }}
 
-        # Deploy Angular bundle to Azure Web App (Linux)
         - task: AzureWebApp@1
           displayName: Deploy Angular App to Azure Web App
           inputs:
-            azureSubscription: ${{ parameters.azureSubscription }}
-            appType: webAppLinux
-            appName: ${{ parameters.webAppName }}
+            azureSubscription: $(azureSubscription)
+            appType: 'webAppLinux'
+            appName: $(webAppName)
             package: '$(Pipeline.Workspace)/AngularApp'
             runtimeStack: 'NODE|20-lts'
             startUpCommand: 'npx serve -s .'
