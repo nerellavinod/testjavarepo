@@ -44,9 +44,7 @@ stages:
   jobs:
     - template: Deployment/templates/build-test-publish.yml
       parameters:
-        Container: ${{ parameters.Container }}
-        environmentType: ${{ parameters.environmentType }}
-        location: ${{ parameters.location }}
+        Container: ${{ parameters.Container }}        
 
 # ------------------ TERRAFORM + WEBAPP DEPLOY ------------------
 - stage: TerraformDeploy
