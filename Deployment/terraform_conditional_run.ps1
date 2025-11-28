@@ -6,7 +6,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-
+Write-Host "3 Current Directory: $(Get-Location)"
 #-----------------------------------------
 # Helper Functions
 #-----------------------------------------
@@ -34,6 +34,13 @@ function Run-Terraform {
 
 cd $env:BUILD_SOURCESDIRECTORY/Deployment/src
 
+Write-Host "Current Directory: $(Get-Location)"
+Write-Host "Script Arguments:"
+Write-Host "  DeploymentResourceGroupName: $DeploymentResourceGroupName"
+Write-Host "  DeploymentStorageAccountName: $DeploymentStorageAccountName"
+Write-Host "  WorkSpace: $WorkSpace"
+Write-Host "  ContinueEvenIfResourcesAreGettingDestroyed: $ContinueEvenIfResourcesAreGettingDestroyed"
+
 Log "Starting Terraform deployment for environment: $WorkSpace"
 
 #-----------------------------------------
@@ -47,7 +54,7 @@ Run-Terraform @(
     "-backend-config=storage_account_name=$DeploymentStorageAccountName",
     "-backend-config=key=terraform.deployment.tfplan"
 )
-
+Write-Host "4 Current Directory: $(Get-Location)"
 #-----------------------------------------
 # Workspace Handling
 #-----------------------------------------
@@ -71,7 +78,7 @@ Run-Terraform @("validate")
 # Plan
 #-----------------------------------------
 Log "Running Terraform plan..."
-
+Write-Host "5 Current Directory: $(Get-Location)"
 terraform plan -out "terraform.deployment.tfplan" `
     | Tee-Object -FilePath terraform_output.txt
 
