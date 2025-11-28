@@ -8,23 +8,63 @@ parameters:
 - name: resourceGroupName
   type: string
   default: ''
+- name: ContinueEvenIfResourcesAreGettingDestroyed
+  type: boolean
+  default: false
+- name: Container
+  type: string
+  default: ''
+- name: AzureDevOpsEnvironment
+  type: string
+  default: ''
+- name: ShortName
+  type: string
+  default: 'uitestdevops'
 
 jobs:
-- job: DeployWebApp
-  displayName: Deploy Angular App to Azure Web App
-  pool:
-    vmImage: 'ubuntu-latest'
-  steps:
-    - download: current
-      artifact: AngularApp
-      displayName: 'Download Angular Build Artifact'
+- deployment: ${{ parameters.ShortName }}Deploy
+  displayName: ${{ upper(parameters.ShortName) }} - deploy terraform and web app
+  environment: ${{ parameters.AzureDevOpsEnvironment }}
+  container: ${{ parameters.Container }}
+  workspace:
+    clean: all
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - download: current
+          displayName: Download deployment artifact
+          artifact: DeploymentScripts
 
-    - task: AzureWebApp@1
-      inputs:
-        azureSubscription: ${{ parameters.azureSubscription }}
-        appType: 'webAppLinux'
-        appName: ${{ parameters.webAppName }}
-        package: '$(Pipeline.Workspace)/AngularApp'
-        runtimeStack: 'NODE|20-lts'
-        startUpCommand: 'npx serve -s .'
-      displayName: 'Deploy Angular App to Azure Web App'
+        - download: current
+          displayName: Download web app artifact
+          artifact: AngularApp
+
+        - task: AzureCLI@2
+          displayName: 'Interactive az login'
+          inputs:
+            scriptType: bash
+            scriptLocation: inlineScript
+            inlineScript: |
+              az login
+
+        - task: PowerShell@2
+          displayName: Terraform deployment
+          inputs:
+            targetType: filePath
+            filePath: '$(Pipeline.Workspace)/DeploymentScripts/terraform_conditional_run.ps1'
+            arguments: '-DeploymentResourceGroupName $(resourceGroupName) -DeploymentStorageAccountName $(tfstateStorageAccountName) -WorkSpace $(environment) -ContinueEvenIfResourcesAreGettingDestroyed $${{ parameters.ContinueEvenIfResourcesAreGettingDestroyed }}'
+          env:
+            ARM_CLIENT_ID: $(ARM_CLIENT_ID)            
+            ARM_TENANT_ID: $(ARM_TENANT_ID)
+            ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+
+        - task: AzureWebApp@1
+          displayName: Deploy Angular App to Azure Web App
+          inputs:
+            azureSubscription: $(azureSubscription)
+            appType: 'webAppLinux'
+            appName: $(webAppName)
+            package: '$(Pipeline.Workspace)/AngularApp'
+            runtimeStack: 'NODE|20-lts'
+            startUpCommand: 'npx serve -s .'
