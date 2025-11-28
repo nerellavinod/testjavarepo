@@ -96,7 +96,7 @@ stages:
   displayName: Deploy Angular App to Azure Web App
   dependsOn: TerraformDeploy
   jobs:
-    - template: Deployment/templates/deploy-and-webapp.yml
+    - template: Deployment/templates/continuous-deployment.yml
       parameters:
         azureSubscription: $(azureSubscription)
         webAppName: $(webAppName)
