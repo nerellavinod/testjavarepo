@@ -26,10 +26,6 @@ variables:
     value: ${{ parameters.environmentType }}
   - name: location
     value: ${{ parameters.location }}
-  - name: resourceGroupName
-    value: $(resourceGroupName)
-  - name: webAppName
-    value: $(webAppName)
   - name: NodeVersion
     value: 20.x
   - name: BuildCounter

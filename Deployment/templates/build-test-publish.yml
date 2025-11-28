@@ -7,7 +7,7 @@ jobs:
 - job: BuildTestPublish
   displayName: Build, test and publish
   pool: $(DeploymentPool)
-  container: ${{ parameters.Container }}
+  #container: ${{ parameters.Container }}
   workspace:
     clean: all
   steps:
