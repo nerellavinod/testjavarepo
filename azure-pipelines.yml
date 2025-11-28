@@ -101,7 +101,7 @@ stages:
           displayName: Install dependencies
         
         - script: |
-            npx stryker run
+            npm run stryker:ci
           displayName: Run Stryker Mutation Tests
           continueOnError: true
         
