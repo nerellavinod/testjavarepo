@@ -45,6 +45,7 @@ stages:
     - template: Deployment/templates/build-test-publish.yml
       parameters:
         Container: ${{ parameters.Container }}
+        environmentType: ${{ parameters.environmentType }}
 
 # -------------------------------
 # Stage 2: Terraform Deployment
