@@ -16,6 +16,21 @@ parameters:
   type: string
   default: "uksouth"
 
+- name: SnykOnlyFailIfFixable
+  displayName: "Snyk should only fail the pipeline if it knows of a fix for an issue"
+  type: boolean
+  default: false
+
+- name: SnykPassOnIssues
+  displayName: "Prevent Snyk from failing the pipeline"
+  type: boolean
+  default: false
+
+- name: RunStryker
+  displayName: "Run Stryker Mutation Tests"
+  type: boolean
+  default: false
+
 - name: Container
   displayName: "Container for Build/Test"
   type: string
@@ -42,10 +57,64 @@ variables:
   - name: DeploymentPool
     value: "Azure Pipelines"
 
+  - name: snykAbzuOrganizationId
+    value: aeb7543b-8394-457c-8334-a31493d8910d
+
 # ===================================================================
-# Stage 1 — Build/Unit Test/Publish Angular App
+# Stage 1 — Vulnerability Checks
 # ===================================================================
 stages:
+
+- stage: VulnerabilityChecks
+  displayName: Snyk checks
+  dependsOn: []
+  jobs:
+  - template: Deployment/templates/vulnerability-checks.yml
+    parameters:
+      SnykOnlyFailIfFixable: ${{ parameters.SnykOnlyFailIfFixable }}
+      SnykPassOnIssues: ${{ parameters.SnykPassOnIssues }}
+
+# ===================================================================
+# Stage 2 — Mutation Testing with Stryker
+# ===================================================================
+- stage: RUNSTRYKER
+  displayName: "Run Stryker Mutation Tests"
+  dependsOn: []
+  jobs:
+    - job: Stryker
+      displayName: Run Stryker Mutation Tests
+      condition: eq('${{ parameters.RunStryker }}', true)
+      pool:
+        vmImage: "ubuntu-latest"
+      workspace:
+        clean: all
+      steps:
+        - checkout: self
+          submodules: true
+        
+        - task: NodeTool@0
+          displayName: Install Node.js
+          inputs:
+            versionSpec: $(NodeVersion)
+        
+        - script: npm ci
+          displayName: Install dependencies
+        
+        - script: |
+            npx stryker run
+          displayName: Run Stryker Mutation Tests
+          continueOnError: true
+        
+        - task: PublishBuildArtifacts@1
+          displayName: Publish Stryker Mutation Report
+          condition: succeededOrFailed()
+          inputs:
+            PathtoPublish: '$(Build.SourcesDirectory)/reports/mutation'
+            ArtifactName: StrykerMutationReport
+
+# ===================================================================
+# Stage 3 — Build/Unit Test/Publish Angular App
+# ===================================================================
 - stage: BuildTestPublish
   displayName: "Build, Test, and Publish Angular App"
   jobs:
@@ -55,77 +124,77 @@ stages:
         environmentType: ${{ parameters.environmentType }}
 
 # ===================================================================
-# Stage 2 — Terraform Deployment
+# Stage 4 — Terraform Deployment
 # ===================================================================
-- stage: TerraformDeploy
-  displayName: "Terraform Web App Provisioning"
-  dependsOn: BuildTestPublish
+# - stage: TerraformDeploy
+#   displayName: "Terraform Web App Provisioning"
+#   dependsOn: BuildTestPublish
 
-  jobs:
-    - job: Terraform
-      displayName: "Terraform Init/Plan"
-      pool:
-        vmImage: "ubuntu-latest"
+#   jobs:
+#     - job: Terraform
+#       displayName: "Terraform Init/Plan"
+#       pool:
+#         vmImage: "ubuntu-latest"
 
-      steps:
-        - checkout: self
+#       steps:
+#         - checkout: self
 
-        # Terraform install
-        - script: |
-            wget https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_linux_amd64.zip
-            unzip terraform_1.3.7_linux_amd64.zip
-            sudo mv terraform /usr/local/bin/
-            terraform -version
-          displayName: "Install Terraform"
+#         # Terraform install
+#         - script: |
+#             wget https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_linux_amd64.zip
+#             unzip terraform_1.3.7_linux_amd64.zip
+#             sudo mv terraform /usr/local/bin/
+#             terraform -version
+#           displayName: "Install Terraform"
 
-        # Terraform run
-        - task: AzureCLI@2
-          displayName: "Terraform deployment (Bash)"
-          inputs:
-            azureSubscription: $(azureSubscription)
-            scriptType: bash
-            scriptLocation: inlineScript
-            inlineScript: |
-              echo "----- Exporting ARM Credentials -----"
-              export ARM_CLIENT_ID=$servicePrincipalId
-              export ARM_CLIENT_SECRET=$servicePrincipalKey
-              export ARM_TENANT_ID=$tenantId
-              export ARM_SUBSCRIPTION_ID=$subscriptionId
+#         # Terraform run
+#         - task: AzureCLI@2
+#           displayName: "Terraform deployment (Bash)"
+#           inputs:
+#             azureSubscription: $(azureSubscription)
+#             scriptType: bash
+#             scriptLocation: inlineScript
+#             inlineScript: |
+#               echo "----- Exporting ARM Credentials -----"
+#               export ARM_CLIENT_ID=$servicePrincipalId
+#               export ARM_CLIENT_SECRET=$servicePrincipalKey
+#               export ARM_TENANT_ID=$tenantId
+#               export ARM_SUBSCRIPTION_ID=$subscriptionId
 
-              cd $(Build.SourcesDirectory)/Deployment/src
+#               cd $(Build.SourcesDirectory)/Deployment/src
 
-              echo "----- Terraform Init -----"
-              terraform init \
-                -backend-config="resource_group_name=$(resourceGroupName)" \
-                -backend-config="storage_account_name=$(tfstateStorageAccountName)" \
-                -backend-config="key=terraform.deployment.tfplan"
+#               echo "----- Terraform Init -----"
+#               terraform init \
+#                 -backend-config="resource_group_name=$(resourceGroupName)" \
+#                 -backend-config="storage_account_name=$(tfstateStorageAccountName)" \
+#                 -backend-config="key=terraform.deployment.tfplan"
 
-              echo "----- Workspace -----"
-              terraform workspace new "$(environment)" || terraform workspace select "$(environment)"
+#               echo "----- Workspace -----"
+#               terraform workspace new "$(environment)" || terraform workspace select "$(environment)"
 
-              echo "----- Validate -----"
-              terraform validate
+#               echo "----- Validate -----"
+#               terraform validate
 
-              echo "----- Plan -----"
-              terraform plan -out="terraform.deployment.tfplan"
+#               echo "----- Plan -----"
+#               terraform plan -out="terraform.deployment.tfplan"
 
-              echo "----- OUTPUT -----"
-              terraform output -json
+#               echo "----- OUTPUT -----"
+#               terraform output -json
 
 # ===================================================================
-# Stage 3 — Angular Deployment to Web App
+# Stage 5 — Angular Deployment to Web App
 # ===================================================================
-- stage: Deploy
-  displayName: "Deploy Angular App to Azure Web App"
-  dependsOn: TerraformDeploy
+# - stage: Deploy
+#   displayName: "Deploy Angular App to Azure Web App"
+#   dependsOn: TerraformDeploy
 
-  jobs:
-    - template: Deployment/templates/continuous-deployment.yml
-      parameters:
-        azureSubscription: $(azureSubscription)
-        webAppName: $(webAppName)
-        resourceGroupName: $(resourceGroupName)
-        Container: ${{ parameters.Container }}
-        ContinueEvenIfResourcesAreGettingDestroyed: false
-        AzureDevOpsEnvironment: $(environment)
-        ShortName: "uitestdevops"
+#   jobs:
+#     - template: Deployment/templates/continuous-deployment.yml
+#       parameters:
+#         azureSubscription: $(azureSubscription)
+#         webAppName: $(webAppName)
+#         resourceGroupName: $(resourceGroupName)
+#         Container: ${{ parameters.Container }}
+#         ContinueEvenIfResourcesAreGettingDestroyed: false
+#         AzureDevOpsEnvironment: $(environment)
+#         ShortName: "uitestdevops"
