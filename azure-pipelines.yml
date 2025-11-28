@@ -21,7 +21,7 @@ parameters:
 variables:
   - group: uitestdevops-library
   - name: azureSubscription
-    value: $(azureSubscription)
+    value: TempAugserviceconnection
   - name: environment
     value: ${{ parameters.environmentType }}
   - name: location
