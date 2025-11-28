@@ -1,101 +1,124 @@
 # File: azure-pipelines.yml
 trigger:
-  - UiAngularTest   # corrected branch name
+  - UiAngularTest
 
 parameters:
 - name: environmentType
-  displayName: 'Environment Type'
+  displayName: "Environment Type"
   type: string
-  default: 'qa'
+  default: "qa"
   values:
     - qa
     - test
+
 - name: location
-  displayName: 'Deployment Location'
+  displayName: "Deployment Location"
   type: string
-  default: 'uksouth'
+  default: "uksouth"
+
 - name: Container
-  displayName: 'Container for Build/Test'
+  displayName: "Container for Build/Test"
   type: string
-  default: 'mcr.microsoft.com/devcontainers/javascript-node:20'  # Node container
+  default: "mcr.microsoft.com/devcontainers/javascript-node:20"
 
 variables:
   - group: uitestdevops-library
+
   - name: azureSubscription
     value: TempAugserviceconnection
+
   - name: environment
     value: ${{ parameters.environmentType }}
+
   - name: location
     value: ${{ parameters.location }}
+
   - name: NodeVersion
     value: 20.x
+
   - name: BuildCounter
     value: "$[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)]"
+
   - name: DeploymentPool
-    value: 'Azure Pipelines'
+    value: "Azure Pipelines"
 
+# ===================================================================
+# Stage 1 — Build/Unit Test/Publish Angular App
+# ===================================================================
 stages:
-
-# -------------------------------
-# Stage 1: Build, Test, and Publish Angular App
-# -------------------------------
 - stage: BuildTestPublish
-  displayName: Build, Test, and Publish
+  displayName: "Build, Test, and Publish Angular App"
   jobs:
     - template: Deployment/templates/build-test-publish.yml
       parameters:
         Container: ${{ parameters.Container }}
         environmentType: ${{ parameters.environmentType }}
 
-# -------------------------------
-# Stage 2: Terraform Deployment
-# -------------------------------
+# ===================================================================
+# Stage 2 — Terraform Deployment
+# ===================================================================
 - stage: TerraformDeploy
-  displayName: Terraform Provision Web App
+  displayName: "Terraform Web App Provisioning"
   dependsOn: BuildTestPublish
+
   jobs:
     - job: Terraform
-      displayName: 'Terraform Init/Plan/Apply'
+      displayName: "Terraform Init/Plan"
       pool:
-        vmImage: 'ubuntu-latest'
+        vmImage: "ubuntu-latest"
+
       steps:
         - checkout: self
 
-        # Install Python (required by terraform script if any Python modules used)
-        - task: UsePythonVersion@0
-          inputs:
-            versionSpec: '3.x'
-
-        # Install Terraform
+        # Terraform install
         - script: |
             wget https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_linux_amd64.zip
             unzip terraform_1.3.7_linux_amd64.zip
             sudo mv terraform /usr/local/bin/
             terraform -version
-          displayName: 'Install Terraform'
+          displayName: "Install Terraform"
 
-        # Run Terraform script using AzureCLI@2 with Bash
+        # Terraform run
         - task: AzureCLI@2
-          displayName: 'Terraform deployment (Bash)'
+          displayName: "Terraform deployment (Bash)"
           inputs:
             azureSubscription: $(azureSubscription)
             scriptType: bash
             scriptLocation: inlineScript
             inlineScript: |
+              echo "----- Exporting ARM Credentials -----"
+              export ARM_CLIENT_ID=$servicePrincipalId
+              export ARM_CLIENT_SECRET=$servicePrincipalKey
+              export ARM_TENANT_ID=$tenantId
+              export ARM_SUBSCRIPTION_ID=$subscriptionId
+
               cd $(Build.SourcesDirectory)/Deployment/src
-              terraform init -backend-config="resource_group_name=$(resourceGroupName)" -backend-config="storage_account_name=$(tfstateStorageAccountName)" -backend-config="key=terraform.deployment.tfplan"
-              terraform workspace new $(environment) || terraform workspace select $(environment)
+
+              echo "----- Terraform Init -----"
+              terraform init \
+                -backend-config="resource_group_name=$(resourceGroupName)" \
+                -backend-config="storage_account_name=$(tfstateStorageAccountName)" \
+                -backend-config="key=terraform.deployment.tfplan"
+
+              echo "----- Workspace -----"
+              terraform workspace new "$(environment)" || terraform workspace select "$(environment)"
+
+              echo "----- Validate -----"
               terraform validate
+
+              echo "----- Plan -----"
               terraform plan -out="terraform.deployment.tfplan"
-              #terraform apply -auto-approve "terraform.deployment.tfplan"
+
+              echo "----- OUTPUT -----"
               terraform output -json
 
-# -------------------------------
-# Stage 3: Deploy Angular App
-# -------------------------------
+# ===================================================================
+# Stage 3 — Angular Deployment to Web App
+# ===================================================================
 - stage: Deploy
-  displayName: Deploy Angular App to Azure Web App
+  displayName: "Deploy Angular App to Azure Web App"
   dependsOn: TerraformDeploy
+
   jobs:
     - template: Deployment/templates/continuous-deployment.yml
       parameters:
@@ -105,4 +128,4 @@ stages:
         Container: ${{ parameters.Container }}
         ContinueEvenIfResourcesAreGettingDestroyed: false
         AzureDevOpsEnvironment: $(environment)
-        ShortName: 'uitestdevops'
+        ShortName: "uitestdevops"
