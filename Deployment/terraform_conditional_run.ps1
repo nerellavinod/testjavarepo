@@ -5,7 +5,7 @@ param(
     [Parameter(Mandatory = $true)] [boolean] $ContinueEvenIfResourcesAreGettingDestroyed
 )
 
-cd $env:AGENT_BUILDDIRECTORY/DeploymentScripts/src
+cd $env:BUILD_SOURCESDIRECTORY/Deployment/src
 
 Write-Output "Executing terraform scripts for deployment in $WorkSpace enviroment"
 terraform init -backend-config="resource_group_name=$DeploymentResourceGroupName" -backend-config="storage_account_name=$DeploymentStorageAccountName" -backend-config="key=terraform.deployment.tfplan"
