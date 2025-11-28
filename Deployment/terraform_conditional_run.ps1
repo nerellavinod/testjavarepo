@@ -20,11 +20,11 @@ function Log {
 function Run-Terraform {
     param([string[]]$Args)
 
-    Log "Running: terraform $Args"
+    Log "Running: terraform $($Args -join ' ')"
     terraform @Args
 
     if ($LASTEXITCODE -ne 0) {
-        throw "Terraform command failed: terraform $Args"
+        throw "Terraform command failed: terraform $($Args -join ' ')"
     }
 }
 
@@ -48,12 +48,15 @@ Log "Starting Terraform deployment for environment: $WorkSpace"
 #-----------------------------------------
 Log "Initializing Terraform backend..."
 
-Run-Terraform @(
+$initArgs = @(
     "init",
     "-backend-config=resource_group_name=$DeploymentResourceGroupName",
     "-backend-config=storage_account_name=$DeploymentStorageAccountName",
     "-backend-config=key=terraform.deployment.tfplan"
 )
+Log "Init Args: $($initArgs -join ' ')"
+Run-Terraform $initArgs
+
 Write-Host "4 Current Directory: $(Get-Location)"
 #-----------------------------------------
 # Workspace Handling
