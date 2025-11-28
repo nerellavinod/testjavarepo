@@ -42,9 +42,9 @@ Log "Starting Terraform deployment for environment: $WorkSpace"
 Log "Initializing Terraform backend..."
 
 Run-Terraform @(
-    "init"
-    "-backend-config=resource_group_name=$DeploymentResourceGroupName"
-    "-backend-config=storage_account_name=$DeploymentStorageAccountName"
+    "init",
+    "-backend-config=resource_group_name=$DeploymentResourceGroupName",
+    "-backend-config=storage_account_name=$DeploymentStorageAccountName",
     "-backend-config=key=terraform.deployment.tfplan"
 )
 
@@ -56,7 +56,7 @@ Log "Checking/Creating workspace: $WorkSpace"
 try {
     terraform workspace new $WorkSpace *>$null
 } catch {
-    # Workspace may already exist — continue
+    # Ignore if exists
 }
 
 Run-Terraform @("workspace", "select", $WorkSpace)
@@ -99,11 +99,9 @@ if ($destroyCount -ge 2) {
 }
 
 #-----------------------------------------
-# Apply
+# Apply (Disabled for Safety)
 #-----------------------------------------
-Log "Applying Terraform plan..."
-
-# Uncomment only after validating output
+# Log "Applying Terraform plan..."
 # Run-Terraform @("apply", "-auto-approve", "terraform.deployment.tfplan")
 
 #-----------------------------------------
