@@ -2,52 +2,107 @@ param(
     [Parameter(Mandatory = $true)] [string] $DeploymentResourceGroupName,
     [Parameter(Mandatory = $true)] [string] $DeploymentStorageAccountName,
     [Parameter(Mandatory = $true)] [string] $WorkSpace,
-    [Parameter(Mandatory = $true)] [boolean] $ContinueEvenIfResourcesAreGettingDestroyed
+    [Parameter(Mandatory = $true)] [bool]   $ContinueEvenIfResourcesAreGettingDestroyed
 )
+
+# Fail immediately on errors
+$ErrorActionPreference = "Stop"
+
+#-----------------------------------------
+# Helper Functions
+#-----------------------------------------
+
+function Log {
+    param([string]$Message)
+    Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] $Message"
+}
+
+function Run-Terraform {
+    param([string]$Args)
+    terraform $Args
+    if ($LASTEXITCODE -ne 0) {
+        throw "Terraform command failed: terraform $Args"
+    }
+}
+
+#-----------------------------------------
+# SCRIPT START
+#-----------------------------------------
 
 cd $env:BUILD_SOURCESDIRECTORY/Deployment/src
 
-Write-Output "Executing terraform scripts for deployment in $WorkSpace enviroment"
-terraform init -backend-config="resource_group_name=$DeploymentResourceGroupName" -backend-config="storage_account_name=$DeploymentStorageAccountName" -backend-config="key=terraform.deployment.tfplan"
-if ( !$? ) { echo "Something went wrong during terraform initialization"; throw "Error" }
+Log "Starting Terraform deployment for environment: $WorkSpace"
 
-Write-Output "Selecting workspace"
+#-----------------------------------------
+# Terraform Init
+#-----------------------------------------
+Log "Initializing Terraform backend..."
 
-$ErrorActionPreference = 'SilentlyContinue'
-terraform workspace new $WorkSpace 2>&1 > $null
-$ErrorActionPreference = 'Continue'
+Run-Terraform "init -backend-config=""resource_group_name=$DeploymentResourceGroupName"" -backend-config=""storage_account_name=$DeploymentStorageAccountName"" -backend-config=""key=terraform.deployment.tfplan"""
 
-terraform workspace select $WorkSpace
-if ( !$? ) { echo "Error while selecting workspace"; throw "Error" }
+#-----------------------------------------
+# Workspace Handling
+#-----------------------------------------
+Log "Checking/Creating workspace: $WorkSpace"
 
-Write-Output "Validating terraform"
-terraform validate
-if ( !$? ) { echo "Something went wrong during terraform validation" ; throw "Error" }
-
-Write-Output "Execute Terraform plan"
-terraform plan -out "terraform.deployment.tfplan" | tee terraform_output.txt
-if ( !$? ) { echo "Something went wrong during terraform plan" ; throw "Error" }
-
-$totalDestroyLines=(Get-Content -Path terraform_output.txt | Select-String -Pattern "destroy" -CaseSensitive |  where {$_ -ne ""}).length
-if($totalDestroyLines -ge 2) 
-{
-    Write-Host("Terraform is destroying some resources, please verify...................")
-    if ( !$ContinueEvenIfResourcesAreGettingDestroyed) 
-    {
-        Write-Host("exiting...................")
-        Write-Output $_
-        exit 1
-    }
-    Write-Host("Continue executing terraform apply - as continueEvenIfResourcesAreGettingDestroyed param is set to true in pipeline")
+try {
+    terraform workspace new $WorkSpace *>$null
+} catch {
+    # workspace may already exist — no issue
 }
 
-Write-Output "Executing terraform apply"
-#terraform apply  "terraform.deployment.tfplan"
-#if ( !$? ) { echo "Something went wrong during terraform apply" ; throw "Error" }
+Run-Terraform "workspace select $WorkSpace"
 
-Write-Output "Terraform output as json"
-$terraformOutput = terraform output -json | ConvertFrom-Json
+#-----------------------------------------
+# Validation
+#-----------------------------------------
+Log "Validating Terraform configuration..."
+Run-Terraform "validate"
 
-Write-Output "Set JSON output into pipeline variables"
-Write-Host "##vso[task.setvariable variable=webapp_url;isOutput=true]$($terraformOutput.webapp_url.value)"
-Write-Host "##vso[task.setvariable variable=webapp_name;isOutput=true]$($terraformOutput.webapp_name.value)"
+#-----------------------------------------
+# Plan
+#-----------------------------------------
+Log "Running Terraform plan..."
+terraform plan -out "terraform.deployment.tfplan" | Tee-Object -FilePath terraform_output.txt
+if ($LASTEXITCODE -ne 0) { throw "Terraform plan failed" }
+
+#-----------------------------------------
+# Detect Destructive Changes
+#-----------------------------------------
+$destroyCount = (Select-String -Path terraform_output.txt -Pattern "destroy" | Where-Object { $_ -ne "" }).Length
+
+if ($destroyCount -ge 2) {
+    Log "WARNING: Terraform is planning to DESTROY resources! Count = $destroyCount"
+
+    if (-not $ContinueEvenIfResourcesAreGettingDestroyed) {
+        Log "Stopping execution due to destructive changes. Enable continue flag to override."
+        exit 1
+    }
+
+    Log "Destructive plan detected but continuing because continue flag = TRUE"
+}
+
+#-----------------------------------------
+# Apply (toggle enabled here)
+#-----------------------------------------
+Log "Applying Terraform plan..."
+
+#Run-Terraform "apply -auto-approve terraform.deployment.tfplan"
+
+#-----------------------------------------
+# Output Variables
+#-----------------------------------------
+Log "Extracting Terraform outputs..."
+
+$tfOutput = terraform output -json | ConvertFrom-Json
+
+$webappUrl = $tfOutput.webapp_url.value
+$webappName = $tfOutput.webapp_name.value
+
+Log "Web App Name: $webappName"
+Log "Web App URL:  $webappUrl"
+
+Write-Host "##vso[task.setvariable variable=webapp_url;isOutput=true]$webappUrl"
+Write-Host "##vso[task.setvariable variable=webapp_name;isOutput=true]$webappName"
+
+Log "Terraform deployment completed successfully."

@@ -1,3 +1,4 @@
+# File: Deployment/templates/deploy-and-webapp.yml
 parameters:
 - name: azureSubscription
   type: string
@@ -40,24 +41,22 @@ jobs:
           displayName: Download web app artifact
           artifact: AngularApp
 
+        # --- Terraform: run the existing PowerShell script inside an authenticated AzureCLI context ---
         - task: AzureCLI@2
-          displayName: 'Interactive az login'
+          name: TerraformStep
+          displayName: 'Terraform deployment (Azure CLI authenticated)'
           inputs:
-            scriptType: bash
-            scriptLocation: inlineScript
+            azureSubscription: '$(azureSubscription)'
+            scriptType: 'ps'
+            scriptLocation: 'inlineScript'
             inlineScript: |
-              az login
-
-        - task: PowerShell@2
-          displayName: Terraform deployment
-          inputs:
-            targetType: filePath
-            filePath: '$(Pipeline.Workspace)/DeploymentScripts/terraform_conditional_run.ps1'
-            arguments: '-DeploymentResourceGroupName $(resourceGroupName) -DeploymentStorageAccountName $(tfstateStorageAccountName) -WorkSpace $(environment) -ContinueEvenIfResourcesAreGettingDestroyed $${{ parameters.ContinueEvenIfResourcesAreGettingDestroyed }}'
-          env:
-            ARM_CLIENT_ID: $(ARM_CLIENT_ID)            
-            ARM_TENANT_ID: $(ARM_TENANT_ID)
-            ARM_SUBSCRIPTION_ID: $(ARM_SUBSCRIPTION_ID)
+              Write-Host "Running terraform_conditional_run.ps1 under AzureCLI (authenticated) context"
+              pwsh "$(Pipeline.Workspace)/DeploymentScripts/terraform_conditional_run.ps1" `
+                -DeploymentResourceGroupName "$(resourceGroupName)" `
+                -DeploymentStorageAccountName "$(tfstateStorageAccountName)" `
+                -WorkSpace "$(environment)" `
+                -ContinueEvenIfResourcesAreGettingDestroyed:${{ parameters.ContinueEvenIfResourcesAreGettingDestroyed }}
+          # Do NOT pass ARM_ secrets here; service connection handles authentication.
 
         - task: AzureWebApp@1
           displayName: Deploy Angular App to Azure Web App

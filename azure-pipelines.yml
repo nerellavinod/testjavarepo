@@ -1,5 +1,6 @@
+# File: azure-pipelines.yml (root pipeline)
 trigger:
-  - UiAngulatTest
+  - UiAngularTest   # corrected branch name
 
 parameters:
 - name: environmentType
@@ -16,7 +17,7 @@ parameters:
 - name: Container
   displayName: 'Container for Build/Test'
   type: string
-  default: 'mcr.microsoft.com/azure-pipelines/node8-typescript:latest'
+  default: 'mcr.microsoft.com/devcontainers/javascript-node:20'  # chosen container image
 
 variables:
   - group: uitestdevops-library
@@ -51,47 +52,25 @@ stages:
         vmImage: 'ubuntu-latest'
       steps:
         - checkout: self
+
+        # install python if needed by terraform script (keeps your previous UsePython step)
         - task: UsePythonVersion@0
           inputs:
             versionSpec: '3.x'
+
+        # Install Terraform (kept as you had)
         - script: |
             wget https://releases.hashicorp.com/terraform/1.3.7/terraform_1.3.7_linux_amd64.zip
             unzip terraform_1.3.7_linux_amd64.zip
             sudo mv terraform /usr/local/bin/
             terraform -version
           displayName: 'Install Terraform'
-        - powershell: |
-            pwsh Deployment/terraform_conditional_run.ps1 `
-              -DeploymentResourceGroupName $(resourceGroupName) `
-              -DeploymentStorageAccountName $(tfstateStorageAccountName) `
-              -WorkSpace "$(environment)" `
-              -ContinueEvenIfResourcesAreGettingDestroyed:$false
-          name: TerraformStep
-          displayName: 'Run Terraform Script'
 
-- stage: Deploy
-  displayName: Deploy to Azure Web App
-  dependsOn: TerraformDeploy
-  jobs:
-    - job: DeployWebApp
-      displayName: Deploy Angular App to Azure Web App
-      variables:
-        - name: webapp_url
-          value: "$[ dependencies.TerraformDeploy.outputs['Terraform.TerraformStep.webapp_url'] ]"
-        - name: webapp_name
-          value: "$[ dependencies.TerraformDeploy.outputs['Terraform.TerraformStep.webapp_name'] ]"
-      steps:
-        - download: current
-          artifact: AngularApp
-          displayName: 'Download Angular Build Artifact'
-        - task: AzureWebApp@1
+        # Run the PowerShell terraform script under AzureCLI@2 so az CLI is authenticated
+        - task: AzureCLI@2
+          name: TerraformStep
+          displayName: 'Run Terraform Script (authenticated via service connection)'
           inputs:
-            azureSubscription: $(azureSubscription)
-            appType: 'webAppLinux'
-            appName: $(webapp_name)
-            package: '$(Pipeline.Workspace)/AngularApp'
-            runtimeStack: 'NODE|20-lts'
-            startUpCommand: 'npx serve -s .'
-         # displayName: 'Deploy Angular App to Azure Web App'
-        #- script: echo "Web App URL: $(webapp_url)"
-        #  displayName: 'Show Web App URL'
+            azureSubscription: '$(azureSubscription)'
+            scriptType: 'ps'
+            scriptLocation: 'inlineScrip
