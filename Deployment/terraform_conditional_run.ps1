@@ -16,18 +16,6 @@ function Log {
     Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] $Message"
 }
 
-# Corrected Terraform wrapper (string[] array)
-function Run-Terraform {
-    param([string[]]$Args)
-
-    Log "Running: terraform $($Args -join ' ')"
-    terraform @Args
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "Terraform command failed: terraform $($Args -join ' ')"
-    }
-}
-
 #-----------------------------------------
 # SCRIPT START
 #-----------------------------------------
@@ -54,8 +42,11 @@ $initArgs = @(
     "-backend-config=storage_account_name=$DeploymentStorageAccountName",
     "-backend-config=key=terraform.deployment.tfplan"
 )
-Log "Init Args: $($initArgs -join ' ')"
-Run-Terraform $initArgs
+Log "Direct call: terraform $($initArgs -join ' ')"
+terraform $initArgs
+if ($LASTEXITCODE -ne 0) {
+    throw "Terraform command failed: terraform $($initArgs -join ' ')"
+}
 
 Write-Host "4 Current Directory: $(Get-Location)"
 #-----------------------------------------
@@ -69,13 +60,23 @@ try {
     # Ignore if exists
 }
 
-Run-Terraform @("workspace", "select", $WorkSpace)
+$wsArgs = @("workspace", "select", $WorkSpace)
+Log "Direct call: terraform $($wsArgs -join ' ')"
+terraform $wsArgs
+if ($LASTEXITCODE -ne 0) {
+    throw "Terraform command failed: terraform $($wsArgs -join ' ')"
+}
 
 #-----------------------------------------
 # Validation
 #-----------------------------------------
 Log "Validating Terraform configuration..."
-Run-Terraform @("validate")
+$validateArgs = @("validate")
+Log "Direct call: terraform $($validateArgs -join ' ')"
+terraform $validateArgs
+if ($LASTEXITCODE -ne 0) {
+    throw "Terraform command failed: terraform $($validateArgs -join ' ')"
+}
 
 #-----------------------------------------
 # Plan
@@ -112,7 +113,12 @@ if ($destroyCount -ge 2) {
 # Apply (Disabled for Safety)
 #-----------------------------------------
 # Log "Applying Terraform plan..."
-# Run-Terraform @("apply", "-auto-approve", "terraform.deployment.tfplan")
+# $applyArgs = @("apply", "-auto-approve", "terraform.deployment.tfplan")
+# Log "Direct call: terraform $($applyArgs -join ' ')"
+# terraform $applyArgs
+# if ($LASTEXITCODE -ne 0) {
+#     throw "Terraform command failed: terraform $($applyArgs -join ' ')"
+# }
 
 #-----------------------------------------
 # Output Variables
