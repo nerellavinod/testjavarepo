@@ -74,18 +74,21 @@ stages:
             terraform -version
           displayName: 'Install Terraform'
 
-        # Run Terraform script using PowerShell@2 with multiline arguments
-        - task: PowerShell@2
-          name: TerraformStep
-          displayName: 'Run Terraform Script'
+        # Run Terraform script using AzureCLI@2 with Bash
+        - task: AzureCLI@2
+          displayName: 'Terraform deployment (Bash)'
           inputs:
-            targetType: filePath
-            filePath: '$(Build.SourcesDirectory)/Deployment/terraform_conditional_run.ps1'
-            arguments: >
-              -DeploymentResourceGroupName "$(resourceGroupName)"
-              -DeploymentStorageAccountName "$(tfstateStorageAccountName)"
-              -WorkSpace "$(environment)"
-              -ContinueEvenIfResourcesAreGettingDestroyed:$false
+            azureSubscription: $(azureSubscription)
+            scriptType: bash
+            scriptLocation: inlineScript
+            inlineScript: |
+              cd $(Build.SourcesDirectory)/Deployment/src
+              terraform init -backend-config="resource_group_name=$(resourceGroupName)" -backend-config="storage_account_name=$(tfstateStorageAccountName)" -backend-config="key=terraform.deployment.tfplan"
+              terraform workspace new $(environment) || terraform workspace select $(environment)
+              terraform validate
+              terraform plan -out="terraform.deployment.tfplan"
+              #terraform apply -auto-approve "terraform.deployment.tfplan"
+              terraform output -json
 
 # -------------------------------
 # Stage 3: Deploy Angular App
