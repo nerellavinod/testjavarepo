@@ -40,20 +40,13 @@ jobs:
           displayName: Download web app artifact
           artifact: AngularApp
 
-        - task: AzureCLI@2
+        - task: PowerShell@2
           name: TerraformStep
-          displayName: 'Terraform deployment (Azure CLI authenticated)'
+          displayName: 'Terraform deployment'
           inputs:
-            azureSubscription: $(azureSubscription)
-            scriptType: 'ps'
-            scriptLocation: 'inlineScript'
-            inlineScript: |
-              Write-Host "Running terraform_conditional_run.ps1 under AzureCLI context"
-              pwsh "$(Pipeline.Workspace)/DeploymentScripts/terraform_conditional_run.ps1" `
-                -DeploymentResourceGroupName "$(resourceGroupName)" `
-                -DeploymentStorageAccountName "$(tfstateStorageAccountName)" `
-                -WorkSpace "$(environment)" `
-                -ContinueEvenIfResourcesAreGettingDestroyed:${{ parameters.ContinueEvenIfResourcesAreGettingDestroyed }}
+            targetType: filePath
+            filePath: '$(Pipeline.Workspace)/DeploymentScripts/terraform_conditional_run.ps1'
+            arguments: '-DeploymentResourceGroupName $(resourceGroupName) -DeploymentStorageAccountName $(tfstateStorageAccountName) -WorkSpace $(environment) -ContinueEvenIfResourcesAreGettingDestroyed $${{ parameters.ContinueEvenIfResourcesAreGettingDestroyed }}'
 
         - task: AzureWebApp@1
           displayName: Deploy Angular App to Azure Web App
