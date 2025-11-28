@@ -5,7 +5,6 @@ param(
     [Parameter(Mandatory = $true)] [bool]   $ContinueEvenIfResourcesAreGettingDestroyed
 )
 
-# Fail immediately on errors
 $ErrorActionPreference = "Stop"
 
 #-----------------------------------------
@@ -17,9 +16,13 @@ function Log {
     Write-Host "[$((Get-Date).ToString('HH:mm:ss'))] $Message"
 }
 
+# Corrected Terraform wrapper (string[] array)
 function Run-Terraform {
-    param([string]$Args)
-    terraform $Args
+    param([string[]]$Args)
+
+    Log "Running: terraform $Args"
+    terraform @Args
+
     if ($LASTEXITCODE -ne 0) {
         throw "Terraform command failed: terraform $Args"
     }
@@ -38,7 +41,12 @@ Log "Starting Terraform deployment for environment: $WorkSpace"
 #-----------------------------------------
 Log "Initializing Terraform backend..."
 
-Run-Terraform "init -backend-config=""resource_group_name=$DeploymentResourceGroupName"" -backend-config=""storage_account_name=$DeploymentStorageAccountName"" -backend-config=""key=terraform.deployment.tfplan"""
+Run-Terraform @(
+    "init"
+    "-backend-config=resource_group_name=$DeploymentResourceGroupName"
+    "-backend-config=storage_account_name=$DeploymentStorageAccountName"
+    "-backend-config=key=terraform.deployment.tfplan"
+)
 
 #-----------------------------------------
 # Workspace Handling
@@ -48,28 +56,36 @@ Log "Checking/Creating workspace: $WorkSpace"
 try {
     terraform workspace new $WorkSpace *>$null
 } catch {
-    # workspace may already exist — no issue
+    # Workspace may already exist — continue
 }
 
-Run-Terraform "workspace select $WorkSpace"
+Run-Terraform @("workspace", "select", $WorkSpace)
 
 #-----------------------------------------
 # Validation
 #-----------------------------------------
 Log "Validating Terraform configuration..."
-Run-Terraform "validate"
+Run-Terraform @("validate")
 
 #-----------------------------------------
 # Plan
 #-----------------------------------------
 Log "Running Terraform plan..."
-terraform plan -out "terraform.deployment.tfplan" | Tee-Object -FilePath terraform_output.txt
-if ($LASTEXITCODE -ne 0) { throw "Terraform plan failed" }
+
+terraform plan -out "terraform.deployment.tfplan" `
+    | Tee-Object -FilePath terraform_output.txt
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Terraform plan failed"
+}
 
 #-----------------------------------------
 # Detect Destructive Changes
 #-----------------------------------------
-$destroyCount = (Select-String -Path terraform_output.txt -Pattern "destroy" | Where-Object { $_ -ne "" }).Length
+$destroyCount = (
+    Select-String -Path terraform_output.txt -Pattern "destroy" |
+    Where-Object { $_ -ne "" }
+).Length
 
 if ($destroyCount -ge 2) {
     Log "WARNING: Terraform is planning to DESTROY resources! Count = $destroyCount"
@@ -83,11 +99,12 @@ if ($destroyCount -ge 2) {
 }
 
 #-----------------------------------------
-# Apply (toggle enabled here)
+# Apply
 #-----------------------------------------
 Log "Applying Terraform plan..."
 
-#Run-Terraform "apply -auto-approve terraform.deployment.tfplan"
+# Uncomment only after validating output
+# Run-Terraform @("apply", "-auto-approve", "terraform.deployment.tfplan")
 
 #-----------------------------------------
 # Output Variables

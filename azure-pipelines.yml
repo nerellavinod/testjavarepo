@@ -74,14 +74,18 @@ stages:
             terraform -version
           displayName: 'Install Terraform'
 
-        # Run Terraform script using PowerShell@2
+        # Run Terraform script using PowerShell@2 with multiline arguments
         - task: PowerShell@2
           name: TerraformStep
           displayName: 'Run Terraform Script'
           inputs:
             targetType: filePath
             filePath: '$(Build.SourcesDirectory)/Deployment/terraform_conditional_run.ps1'
-            arguments: '-DeploymentResourceGroupName $(resourceGroupName) -DeploymentStorageAccountName $(tfstateStorageAccountName) -WorkSpace $(environment) -ContinueEvenIfResourcesAreGettingDestroyed $false'
+            arguments: >
+              -DeploymentResourceGroupName "$(resourceGroupName)"
+              -DeploymentStorageAccountName "$(tfstateStorageAccountName)"
+              -WorkSpace "$(environment)"
+              -ContinueEvenIfResourcesAreGettingDestroyed:$false
 
 # -------------------------------
 # Stage 3: Deploy Angular App
