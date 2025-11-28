@@ -29,10 +29,12 @@ jobs:
   container: ${{ parameters.Container }}
   workspace:
     clean: all
+
   strategy:
     runOnce:
       deploy:
         steps:
+
         - download: current
           displayName: Download deployment artifact
           artifact: DeploymentScripts
@@ -41,29 +43,30 @@ jobs:
           displayName: Download web app artifact
           artifact: AngularApp
 
-        # --- Terraform: run the existing PowerShell script inside an authenticated AzureCLI context ---
+        # Terraform Execution inside Azure CLI authenticated context
         - task: AzureCLI@2
           name: TerraformStep
           displayName: 'Terraform deployment (Azure CLI authenticated)'
           inputs:
-            azureSubscription: '$(azureSubscription)'
-            scriptType: 'ps'
-            scriptLocation: 'inlineScript'
+            azureSubscription: ${{ parameters.azureSubscription }}
+            scriptType: ps
+            scriptLocation: inlineScript
             inlineScript: |
-              Write-Host "Running terraform_conditional_run.ps1 under AzureCLI (authenticated) context"
+              Write-Host "Running terraform_conditional_run.ps1 under AzureCLI context"
+
               pwsh "$(Pipeline.Workspace)/DeploymentScripts/terraform_conditional_run.ps1" `
-                -DeploymentResourceGroupName "$(resourceGroupName)" `
+                -DeploymentResourceGroupName "${{ parameters.resourceGroupName }}" `
                 -DeploymentStorageAccountName "$(tfstateStorageAccountName)" `
                 -WorkSpace "$(environment)" `
                 -ContinueEvenIfResourcesAreGettingDestroyed:${{ parameters.ContinueEvenIfResourcesAreGettingDestroyed }}
-          # Do NOT pass ARM_ secrets here; service connection handles authentication.
 
+        # Deploy Angular bundle to Azure Web App (Linux)
         - task: AzureWebApp@1
           displayName: Deploy Angular App to Azure Web App
           inputs:
-            azureSubscription: $(azureSubscription)
-            appType: 'webAppLinux'
-            appName: $(webAppName)
+            azureSubscription: ${{ parameters.azureSubscription }}
+            appType: webAppLinux
+            appName: ${{ parameters.webAppName }}
             package: '$(Pipeline.Workspace)/AngularApp'
             runtimeStack: 'NODE|20-lts'
             startUpCommand: 'npx serve -s .'
