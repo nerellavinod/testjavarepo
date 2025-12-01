@@ -19,7 +19,7 @@ jobs:
     inputs:
       versionSpec: $(NodeVersion)
 
-  - script: npm ci
+  - script: npm install
     displayName: Install dependencies
 
 
