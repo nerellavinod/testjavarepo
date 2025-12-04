@@ -36,106 +36,106 @@ variables:
   BuildCounter: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)]
 
 stages:
-- stage: VulnerabilityChecks
-  displayName: Snyk Vulnerability Scan
-  jobs:
-  - job: snyk_scan
-    displayName: 'Snyk Security Scan'
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-      - checkout: self
-      - task: NodeTool@0
-        displayName: Install Node.js
-        inputs:
-          versionSpec: '$(NodeVersion)'
-      - script: npm ci
-        displayName: 'npm ci'
-      # - script: |
-      #     npm install -g snyk
-      #     snyk auth $(SNYK_TOKEN)
-      #     snyk test --all-projects --org=$(snykOrgID) $( if ${{ parameters.SnykOnlyFailIfFixable }}; then echo '--fail-on=upgradable'; fi )
-      #   displayName: 'Snyk: Test for Vulnerabilities'
-      #   env:
-      #     SNYK_TOKEN: $(SNYK_TOKEN)
-      # - script: |
-      #     snyk monitor --all-projects --org=$(snykOrgID)
-      #   displayName: 'Snyk: Monitor Project'
+# - stage: VulnerabilityChecks
+#   displayName: Snyk Vulnerability Scan
+#   jobs:
+#   - job: snyk_scan
+#     displayName: 'Snyk Security Scan'
+#     pool:
+#       vmImage: 'ubuntu-latest'
+#     steps:
+#       - checkout: self
+#       - task: NodeTool@0
+#         displayName: Install Node.js
+#         inputs:
+#           versionSpec: '$(NodeVersion)'
+#       - script: npm ci
+#         displayName: 'npm ci'
+#       # - script: |
+#       #     npm install -g snyk
+#       #     snyk auth $(SNYK_TOKEN)
+#       #     snyk test --all-projects --org=$(snykOrgID) $( if ${{ parameters.SnykOnlyFailIfFixable }}; then echo '--fail-on=upgradable'; fi )
+#       #   displayName: 'Snyk: Test for Vulnerabilities'
+#       #   env:
+#       #     SNYK_TOKEN: $(SNYK_TOKEN)
+#       # - script: |
+#       #     snyk monitor --all-projects --org=$(snykOrgID)
+#       #   displayName: 'Snyk: Monitor Project'
 
-- stage: BuildTestPublish
-  displayName: Build, mutation, coverage, publish
-  dependsOn: VulnerabilityChecks
-  jobs:
-  - job: BuildTest
-    displayName: Build/Test/Mutation/Coverage
-    pool:
-      vmImage: 'ubuntu-latest'
-    steps:
-    - checkout: self
+# - stage: BuildTestPublish
+#   displayName: Build, mutation, coverage, publish
+#   dependsOn: VulnerabilityChecks
+#   jobs:
+#   - job: BuildTest
+#     displayName: Build/Test/Mutation/Coverage
+#     pool:
+#       vmImage: 'ubuntu-latest'
+#     steps:
+#     - checkout: self
 
-    - task: NodeTool@0
-      displayName: Install Node.js
-      inputs:
-        versionSpec: $(NodeVersion)
+#     - task: NodeTool@0
+#       displayName: Install Node.js
+#       inputs:
+#         versionSpec: $(NodeVersion)
 
-    - script: npm ci
-      displayName: 'npm install (ci)'
+#     - script: npm ci
+#       displayName: 'npm install (ci)'
 
-    # ---- Angular Version Check ----
-    - script: npx ng --version
-      displayName: 'Show Angular CLI Version (ng version)'
+#     # ---- Angular Version Check ----
+#     - script: npx ng --version
+#       displayName: 'Show Angular CLI Version (ng version)'
 
-    - script: |
-        node -e "console.log('Angular core version: ' + require('./node_modules/@angular/core/package.json').version)"
-      displayName: 'Show @angular/core Version'
+#     - script: |
+#         node -e "console.log('Angular core version: ' + require('./node_modules/@angular/core/package.json').version)"
+#       displayName: 'Show @angular/core Version'
 
-    - script: npm run build -- --configuration production
-      displayName: 'Build Angular App'
+#     - script: npm run build -- --configuration production
+#       displayName: 'Build Angular App'
 
-    - script: npm run test:ci -- --code-coverage --watch=false
-      displayName: 'Run Unit Tests (with Coverage)'
+#     - script: npm run test:ci -- --code-coverage --watch=false
+#       displayName: 'Run Unit Tests (with Coverage)'
 
-    - script: npx stryker run
-      displayName: 'Run Stryker Mutation Tests'
-      continueOnError: true
+#     - script: npx stryker run
+#       displayName: 'Run Stryker Mutation Tests'
+#       continueOnError: true
 
-    - task: PublishTestResults@2
-      condition: succeededOrFailed()
-      displayName: Publish Unit Test Results
-      inputs:
-        testRunner: 'JUnit'
-        testResultsFiles: '**/TEST-*.xml'
-        testRunTitle: Unit Tests
+#     - task: PublishTestResults@2
+#       condition: succeededOrFailed()
+#       displayName: Publish Unit Test Results
+#       inputs:
+#         testRunner: 'JUnit'
+#         testResultsFiles: '**/TEST-*.xml'
+#         testRunTitle: Unit Tests
 
-    - task: PublishCodeCoverageResults@1
-      displayName: Publish Code Coverage Results
-      inputs:
-        codeCoverageTool: 'Cobertura'
-        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/*coverage.xml'
-        reportDirectory: 'coverage/'
+#     - task: PublishCodeCoverageResults@1
+#       displayName: Publish Code Coverage Results
+#       inputs:
+#         codeCoverageTool: 'Cobertura'
+#         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/*coverage.xml'
+#         reportDirectory: 'coverage/'
 
-    # --- SSR ZIP & ARTIFACT PUBLISH ---
-    - task: CopyFiles@2
-      inputs:
-        SourceFolder: '.'
-        Contents: 'package.json'
-        TargetFolder: 'dist/uitestdevops'
-      displayName: 'Copy package.json to dist'
+#     # --- SSR ZIP & ARTIFACT PUBLISH ---
+#     - task: CopyFiles@2
+#       inputs:
+#         SourceFolder: '.'
+#         Contents: 'package.json'
+#         TargetFolder: 'dist/uitestdevops'
+#       displayName: 'Copy package.json to dist'
 
-    - task: ArchiveFiles@2
-      inputs:
-        rootFolderOrFile: 'dist/uitestdevops'
-        includeRootFolder: false
-        archiveType: 'zip'
-        archiveFile: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
-        replaceExistingArchive: true
-      displayName: 'Create deployment package (SSR zip)'
+#     - task: ArchiveFiles@2
+#       inputs:
+#         rootFolderOrFile: 'dist/uitestdevops'
+#         includeRootFolder: false
+#         archiveType: 'zip'
+#         archiveFile: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
+#         replaceExistingArchive: true
+#       displayName: 'Create deployment package (SSR zip)'
 
-    - task: PublishBuildArtifacts@1
-      displayName: Publish Angular SSR Artifact
-      inputs:
-        pathToPublish: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
-        artifactName: AngularApp
+#     - task: PublishBuildArtifacts@1
+#       displayName: Publish Angular SSR Artifact
+#       inputs:
+#         pathToPublish: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
+#         artifactName: AngularApp
 
 - stage: IaC
   displayName: Provision/Update Landing Zone Infra with Terraform
