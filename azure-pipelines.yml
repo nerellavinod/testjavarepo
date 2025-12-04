@@ -9,6 +9,7 @@ variables:
   location: 'uksouth'
   webAppName: 'hmnao-ui-app'
 
+  # Backend values (ONLY used in provider.tf, NOT in YAML anymore)
   TF_STORAGE_ACCOUNT: 'tempaugstorage'
   TF_STORAGE_CONTAINER: 'tfstate'
 
@@ -39,7 +40,7 @@ stages:
       displayName: "Install Terraform"
 
 
-    # Terraform init/plan/apply
+    # Terraform init/plan/apply using service connection OIDC
     - task: AzureCLI@2
       displayName: "Terraform Init/Plan/Apply"
       inputs:
@@ -48,26 +49,22 @@ stages:
         scriptLocation: inlineScript
         addSpnToEnvironment: true
         inlineScript: |
-          set +e
+          set -e
 
           WORKDIR="$(Build.SourcesDirectory)/Deployment/src"
 
-          echo "=== WORKING DIRECTORY ==="
+          echo "=== WORKDIR ==="
           echo $WORKDIR
 
-          echo "=== LISTING TERRAFORM FILES ==="
-          ls -lah $WORKDIR
+          echo "=== FILES ==="
+          ls -l $WORKDIR
 
           echo "=== CLEAN OLD TERRAFORM CACHE ==="
           rm -rf $WORKDIR/.terraform
-          rm -f $WORKDIR/.terraform.lock.hcl
+          rm -f  $WORKDIR/.terraform.lock.hcl
 
-          echo "=== TERRAFORM INIT ==="
-          terraform -chdir=$WORKDIR init -reconfigure \
-            -backend-config="resource_group_name=$(resourceGroupName)" \
-            -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
-            -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
-            -backend-config="key=hmnao.tfstate"
+          echo "=== TERRAFORM INIT (NO BACKEND CONFIG FROM PIPELINE) ==="
+          terraform -chdir=$WORKDIR init -reconfigure
 
           echo "=== TERRAFORM PLAN ==="
           terraform -chdir=$WORKDIR plan \
@@ -80,6 +77,7 @@ stages:
             -var "resource_group_name=$(resourceGroupName)" \
             -var "location=$(location)" \
             -var "app_service_name=$(webAppName)"
+
 
 
 # ============================================================
