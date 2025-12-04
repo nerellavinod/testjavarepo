@@ -1,4 +1,4 @@
-trigger:
+trigger: 
 - UiAngulatTest
 
 variables:
@@ -31,10 +31,15 @@ stages:
     steps:
     - checkout: self
 
-    # Install Terraform
-    - task: TerraformInstaller@1
-      inputs:
-        terraformVersion: '1.9.8'
+    # Install Terraform manually (no marketplace needed)
+    - script: |
+        sudo apt-get update
+        sudo apt-get install -y wget unzip
+        wget https://releases.hashicorp.com/terraform/1.9.8/terraform_1.9.8_linux_amd64.zip
+        unzip terraform_1.9.8_linux_amd64.zip
+        sudo mv terraform /usr/local/bin/
+        terraform -version
+      displayName: "Install Terraform"
 
     # Terraform Init (ALZ Storage Backend)
     - script: |
