@@ -1,4 +1,4 @@
-trigger: 
+trigger:  
 - UiAngulatTest
 
 variables:
@@ -31,7 +31,7 @@ stages:
     steps:
     - checkout: self
 
-    # Install Terraform manually (no marketplace needed)
+    # Install Terraform manually
     - script: |
         sudo apt-get update
         sudo apt-get install -y wget unzip
@@ -50,6 +50,11 @@ stages:
           -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
           -backend-config="key=hmnao.tfstate"
       displayName: 'Terraform Init'
+      env:
+        ARM_USE_MSI: true
+        ARM_CLIENT_ID: $(MANAGED_IDENTITY_CLIENT_ID)
+        ARM_TENANT_ID: $(ARM_TENANT_ID)
+        ARM_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
 
     # Terraform Plan
     - script: |
@@ -62,6 +67,11 @@ stages:
           -var "location=$(location)" \
           -var "app_service_name=$(webAppName)"
       displayName: 'Terraform Plan'
+      env:
+        ARM_USE_MSI: true
+        ARM_CLIENT_ID: $(MANAGED_IDENTITY_CLIENT_ID)
+        ARM_TENANT_ID: $(ARM_TENANT_ID)
+        ARM_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
 
     # Terraform Apply
     - script: |
@@ -72,8 +82,7 @@ stages:
           -var "client_id=$(MANAGED_IDENTITY_CLIENT_ID)" \
           -var "resource_group_name=$(resourceGroupName)" \
           -var "location=$(location)" \
-          -var "app_service_name=$(webAppName)"
-      displayName: 'Terraform Apply'
+
 
 # ============================================================
 # 2️⃣ DEPLOY ANGULAR APP TO WEB APP
