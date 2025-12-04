@@ -1,32 +1,19 @@
-variable "subscription_id" {
-  description = "Azure Subscription ID"
-  type        = string
-  default     = "c3d246d3-988a-45ae-ba70-f7faac1e2d0a"
+variable "tenant_id" {}
+variable "subscription_id" {}
+variable "client_id" {}
+
+variable "resource_group_name" { type = string }
+variable "location" { type = string }
+variable "app_service_name" { type = string }
+
+variable "address_space" {
+  default = ["10.50.0.0/16"]
 }
 
-variable "resource_group_name" {
-  description = "Resource group name"
-  type        = string
-  default     = "tempaugrg"
+variable "subnet_web" {
+  default = "10.50.1.0/24"
 }
 
-variable "location" {
-  description = "Azure region for deployment"
-  type        = string
-  default     = "uksouth"
-}
-
-variable "storage_account_name" {
-  description = "Storage account name for Terraform state and app"
-  type        = string
-}
-
-variable "key_vault_name" {
-  description = "Key Vault name"
-  type        = string
-}
-
-variable "app_service_name" {
-  description = "App Service name"
-  type        = string
+variable "subnet_pe" {
+  default = "10.50.2.0/24"
 }

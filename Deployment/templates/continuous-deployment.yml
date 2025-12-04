@@ -1,45 +1,32 @@
 parameters:
 - name: azureSubscription
   type: string
-  default: ''
 - name: webAppName
   type: string
-  default: ''
 
 jobs:
 - job: DeployWebApp
-  displayName: Deploy Angular SSR App to Azure Web App
   pool:
     vmImage: 'ubuntu-latest'
+
   steps:
     - download: current
       artifact: AngularApp
-      displayName: 'Download Angular Build Artifact'
+      displayName: "Download Angular Build Artifact"
 
-    # Unzip the artifact if it is zipped (adjust if your build already publishes unzipped)
     - task: ExtractFiles@1
       inputs:
-        archiveFilePatterns: '$(Pipeline.Workspace)/AngularApp/*.zip'
-        destinationFolder: '$(Pipeline.Workspace)/AngularApp/unzipped'
+        archiveFilePatterns: "$(Pipeline.Workspace)/AngularApp/*.zip"
+        destinationFolder: "$(Pipeline.Workspace)/AngularApp/unzipped"
         cleanDestinationFolder: true
-      displayName: 'Extract Angular SSR Artifact'
-
-    # Fetch secrets from Key Vault using Managed Identity (if needed for deployment)
-    - task: AzureKeyVault@2
-      inputs:
-        connectedServiceName: ${{ parameters.azureSubscription }}
-        keyVaultName: $(TF_KEY_VAULT)
-        secretsFilter: '*'
-      displayName: 'Fetch secrets from Key Vault (private endpoint)'
+      displayName: "Extract App Bundle"
 
     - task: AzureWebApp@1
+      displayName: "Deploy Angular SSR App"
       inputs:
         azureSubscription: ${{ parameters.azureSubscription }}
-        appType: 'webAppLinux'
+        appType: "webAppLinux"
         appName: ${{ parameters.webAppName }}
-        package: '$(Pipeline.Workspace)/AngularApp/unzipped'
-        runtimeStack: 'NODE|20-lts'
-        startUpCommand: 'npm install --omit=dev && node server/server.mjs'
-      displayName: 'Deploy Angular SSR App to Azure Web App'
-      # Ensure App Service is VNet integrated and only accessible via private endpoint (configured in Terraform)
-      # No library variables used; secrets fetched from Key Vault if needed
+        package: "$(Pipeline.Workspace)/AngularApp/unzipped"
+        runtimeStack: "NODE|20-lts"
+        startUpCommand: "npm install --omit=dev && node server/server.mjs"

@@ -1,180 +1,80 @@
 trigger:
 - UiAngulatTest
 
-parameters:
-- name: environmentType
-  displayName: 'Environment Type'
-  type: string
-  default: 'qa'
-  values:
-    - qa
-    - test    
-- name: location
-  displayName: 'Deployment Location'
-  type: string
-  default: 'uksouth'
-- name: SnykOnlyFailIfFixable
-  displayName: "Snyk should only fail the pipeline if it knows of a fix for an issue"
-  type: boolean
-  default: false
-- name: SnykPassOnIssues
-  displayName: "Prevent Snyk from failing the pipeline"
-  type: boolean
-  default: false
-
 variables:
   azureSubscription: 'TempAugserviceconnection'
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
-  environment: ${{ parameters.environmentType }}
-  location: ${{ parameters.location }}
-  resourceGroupName: 'tempaugrg'
-  webAppName: 'Uiangularwebapp'
-  NodeVersion: 20.x
-  TF_KEY_VAULT: '<your-landingzone-keyvault>'
-  TF_STORAGE_ACCOUNT: '<your-landingzone-storageaccount>'
-  TF_STORAGE_CONTAINER: '<your-tfstate-container>'
-  BuildCounter: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)]
+
+  # Managed Identity (UAMI)
+  MANAGED_IDENTITY_CLIENT_ID: '26533ce6-9d6c-413b-b4bd-7847aab1f2a2'
+  ARM_TENANT_ID: 'add1c500-a6d7-4dbd-b890-7f8cb67d7861'
+
+  # Resource Names
+  resourceGroupName: 'TempAugRG'
+  location: 'uksouth'
+  webAppName: 'hmnao-ui-app'
+  TF_STORAGE_ACCOUNT: 'tempaugstorage'
+  TF_STORAGE_CONTAINER: 'tfstate'
 
 stages:
-# - stage: VulnerabilityChecks
-#   displayName: Snyk Vulnerability Scan
-#   jobs:
-#   - job: snyk_scan
-#     displayName: 'Snyk Security Scan'
-#     pool:
-#       vmImage: 'ubuntu-latest'
-#     steps:
-#       - checkout: self
-#       - task: NodeTool@0
-#         displayName: Install Node.js
-#         inputs:
-#           versionSpec: '$(NodeVersion)'
-#       - script: npm ci
-#         displayName: 'npm ci'
-#       # - script: |
-#       #     npm install -g snyk
-#       #     snyk auth $(SNYK_TOKEN)
-#       #     snyk test --all-projects --org=$(snykOrgID) $( if ${{ parameters.SnykOnlyFailIfFixable }}; then echo '--fail-on=upgradable'; fi )
-#       #   displayName: 'Snyk: Test for Vulnerabilities'
-#       #   env:
-#       #     SNYK_TOKEN: $(SNYK_TOKEN)
-#       # - script: |
-#       #     snyk monitor --all-projects --org=$(snykOrgID)
-#       #   displayName: 'Snyk: Monitor Project'
 
-# - stage: BuildTestPublish
-#   displayName: Build, mutation, coverage, publish
-#   dependsOn: VulnerabilityChecks
-#   jobs:
-#   - job: BuildTest
-#     displayName: Build/Test/Mutation/Coverage
-#     pool:
-#       vmImage: 'ubuntu-latest'
-#     steps:
-#     - checkout: self
-
-#     - task: NodeTool@0
-#       displayName: Install Node.js
-#       inputs:
-#         versionSpec: $(NodeVersion)
-
-#     - script: npm ci
-#       displayName: 'npm install (ci)'
-
-#     # ---- Angular Version Check ----
-#     - script: npx ng --version
-#       displayName: 'Show Angular CLI Version (ng version)'
-
-#     - script: |
-#         node -e "console.log('Angular core version: ' + require('./node_modules/@angular/core/package.json').version)"
-#       displayName: 'Show @angular/core Version'
-
-#     - script: npm run build -- --configuration production
-#       displayName: 'Build Angular App'
-
-#     - script: npm run test:ci -- --code-coverage --watch=false
-#       displayName: 'Run Unit Tests (with Coverage)'
-
-#     - script: npx stryker run
-#       displayName: 'Run Stryker Mutation Tests'
-#       continueOnError: true
-
-#     - task: PublishTestResults@2
-#       condition: succeededOrFailed()
-#       displayName: Publish Unit Test Results
-#       inputs:
-#         testRunner: 'JUnit'
-#         testResultsFiles: '**/TEST-*.xml'
-#         testRunTitle: Unit Tests
-
-#     - task: PublishCodeCoverageResults@1
-#       displayName: Publish Code Coverage Results
-#       inputs:
-#         codeCoverageTool: 'Cobertura'
-#         summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/*coverage.xml'
-#         reportDirectory: 'coverage/'
-
-#     # --- SSR ZIP & ARTIFACT PUBLISH ---
-#     - task: CopyFiles@2
-#       inputs:
-#         SourceFolder: '.'
-#         Contents: 'package.json'
-#         TargetFolder: 'dist/uitestdevops'
-#       displayName: 'Copy package.json to dist'
-
-#     - task: ArchiveFiles@2
-#       inputs:
-#         rootFolderOrFile: 'dist/uitestdevops'
-#         includeRootFolder: false
-#         archiveType: 'zip'
-#         archiveFile: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
-#         replaceExistingArchive: true
-#       displayName: 'Create deployment package (SSR zip)'
-
-#     - task: PublishBuildArtifacts@1
-#       displayName: Publish Angular SSR Artifact
-#       inputs:
-#         pathToPublish: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
-#         artifactName: AngularApp
-
+# ============================================================
+# 1️⃣ TERRAFORM INFRA DEPLOYMENT (ALZ + PE + APP SERVICE)
+# ============================================================
 - stage: IaC
-  displayName: Provision/Update Landing Zone Infra with Terraform
-  #dependsOn: BuildTestPublish
+  displayName: "Provision Infra using Terraform"
   jobs:
-  - job: Terraform
+  - job: TerraformJob
     pool:
       vmImage: 'ubuntu-latest'
-    steps:
-      - checkout: self
-      - script: |
-          sudo apt-get update
-          sudo apt-get install -y gnupg software-properties-common curl
-          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-          sudo apt-get update && sudo apt-get install terraform
-          terraform -version
-        displayName: 'Install Terraform CLI'
-      - script: |
-          cd Deployment/src
-          terraform init -backend-config="resource_group_name=$(resourceGroupName)" \
-                         -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
-                         -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
-                         -backend-config="key=terraform.tfstate"
-        displayName: 'Terraform Init'
-      - script: |
-          cd Deployment/src
-          terraform plan -var "key_vault_name=$(TF_KEY_VAULT)" \
-                         -var "app_service_name=$(webAppName)"
-        displayName: 'Terraform Plan'
-      - script: |
-          cd Deployment/src
-          terraform apply -auto-approve \
-            -var "key_vault_name=$(TF_KEY_VAULT)" \
-            -var "app_service_name=$(webAppName)"
-        displayName: 'Terraform Apply'
 
+    steps:
+    - checkout: self
+
+    # Install Terraform
+    - task: TerraformInstaller@1
+      inputs:
+        terraformVersion: '1.9.8'
+
+    # Terraform Init (ALZ Storage Backend)
+    - script: |
+        cd Deployment/src
+        terraform init \
+          -backend-config="resource_group_name=$(resourceGroupName)" \
+          -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
+          -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
+          -backend-config="key=hmnao.tfstate"
+      displayName: 'Terraform Init'
+
+    # Terraform Plan
+    - script: |
+        cd Deployment/src
+        terraform plan \
+          -var "tenant_id=$(ARM_TENANT_ID)" \
+          -var "subscription_id=$(AZURE_SUBSCRIPTION_ID)" \
+          -var "client_id=$(MANAGED_IDENTITY_CLIENT_ID)" \
+          -var "resource_group_name=$(resourceGroupName)" \
+          -var "location=$(location)" \
+          -var "app_service_name=$(webAppName)"
+      displayName: 'Terraform Plan'
+
+    # Terraform Apply
+    - script: |
+        cd Deployment/src
+        terraform apply -auto-approve \
+          -var "tenant_id=$(ARM_TENANT_ID)" \
+          -var "subscription_id=$(AZURE_SUBSCRIPTION_ID)" \
+          -var "client_id=$(MANAGED_IDENTITY_CLIENT_ID)" \
+          -var "resource_group_name=$(resourceGroupName)" \
+          -var "location=$(location)" \
+          -var "app_service_name=$(webAppName)"
+      displayName: 'Terraform Apply'
+
+# ============================================================
+# 2️⃣ DEPLOY ANGULAR APP TO WEB APP
+# ============================================================
 - stage: Deploy
-  displayName: Deploy to Azure Web App
+  displayName: "Deploy Angular SSR App"
   dependsOn: IaC
   jobs:
   - template: Deployment/templates/continuous-deployment.yml
