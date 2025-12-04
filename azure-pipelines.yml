@@ -52,6 +52,11 @@ stages:
         scriptLocation: inlineScript
         addSpnToEnvironment: true
         inlineScript: |
+          #########################################
+          # IMPORTANT: PREVENT EARLY SCRIPT EXIT  #
+          #########################################
+          set +e
+
           WORKDIR="$(System.DefaultWorkingDirectory)/Deployment/src"
 
           echo "=== CLEAN OLD TERRAFORM CACHE ==="
