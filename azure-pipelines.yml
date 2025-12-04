@@ -2,11 +2,8 @@ trigger:
 - UiAngulatTest
 
 variables:
-  azureSubscription: 'TempAugserviceconnection1'
+  azureSubscription: 'TempAugserviceconnection1'   # use the new connection
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
-
-  # Managed Identity (UAMI)
-  MANAGED_IDENTITY_CLIENT_ID: '26533ce6-9d6c-413b-b4bd-7847aab1f2a2'
   ARM_TENANT_ID: 'add1c500-a6d7-4dbd-b890-7f8cb67d7861'
 
   # Resource Names
@@ -19,7 +16,7 @@ variables:
 stages:
 
 # ============================================================
-# 1️⃣ TERRAFORM INFRA DEPLOYMENT (ALZ + PE + APP SERVICE)
+# 1️⃣ TERRAFORM INFRA DEPLOYMENT
 # ============================================================
 - stage: IaC
   displayName: "Provision Infra using Terraform"
@@ -41,48 +38,36 @@ stages:
         terraform -version
       displayName: "Install Terraform"
 
-    # Terraform Init (ALZ Storage Backend)
-    - script: |
-        cd Deployment/src
-        terraform init \
-          -backend-config="resource_group_name=$(resourceGroupName)" \
-          -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
-          -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
-          -backend-config="key=hmnao.tfstate"
-      displayName: 'Terraform Init'
-      env:
-        ARM_USE_MSI: true
-        ARM_CLIENT_ID: $(MANAGED_IDENTITY_CLIENT_ID)
-        ARM_TENANT_ID: $(ARM_TENANT_ID)
-        ARM_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+    # 🔐 Login to Azure using the service connection (SPN / OIDC)
+    # and expose credentials as ARM_* env vars for Terraform
+    - task: AzureCLI@2
+      displayName: "Terraform Init/Plan/Apply"
+      inputs:
+        azureSubscription: $(azureSubscription)
+        scriptType: bash
+        scriptLocation: inlineScript
+        addSpnToEnvironment: true
+        inlineScript: |
+          cd Deployment/src
 
-    # Terraform Plan
-    - script: |
-        cd Deployment/src
-        terraform plan \
-          -var "tenant_id=$(ARM_TENANT_ID)" \
-          -var "subscription_id=$(AZURE_SUBSCRIPTION_ID)" \
-          -var "client_id=$(MANAGED_IDENTITY_CLIENT_ID)" \
-          -var "resource_group_name=$(resourceGroupName)" \
-          -var "location=$(location)" \
-          -var "app_service_name=$(webAppName)"
-      displayName: 'Terraform Plan'
-      env:
-        ARM_USE_MSI: true
-        ARM_CLIENT_ID: $(MANAGED_IDENTITY_CLIENT_ID)
-        ARM_TENANT_ID: $(ARM_TENANT_ID)
-        ARM_SUBSCRIPTION_ID: $(AZURE_SUBSCRIPTION_ID)
+          echo "=== Terraform init ==="
+          terraform init \
+            -backend-config="resource_group_name=$(resourceGroupName)" \
+            -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
+            -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
+            -backend-config="key=hmnao.tfstate"
 
-    # Terraform Apply
-    - script: |
-        cd Deployment/src
-        terraform apply -auto-approve \
-          -var "tenant_id=$(ARM_TENANT_ID)" \
-          -var "subscription_id=$(AZURE_SUBSCRIPTION_ID)" \
-          -var "client_id=$(MANAGED_IDENTITY_CLIENT_ID)" \
-          -var "resource_group_name=$(resourceGroupName)" \
-          -var "location=$(location)" \
+          echo "=== Terraform plan ==="
+          terraform plan \
+            -var "resource_group_name=$(resourceGroupName)" \
+            -var "location=$(location)" \
+            -var "app_service_name=$(webAppName)"
 
+          echo "=== Terraform apply ==="
+          terraform apply -auto-approve \
+            -var "resource_group_name=$(resourceGroupName)" \
+            -var "location=$(location)" \
+            -var "app_service_name=$(webAppName)"
 
 # ============================================================
 # 2️⃣ DEPLOY ANGULAR APP TO WEB APP

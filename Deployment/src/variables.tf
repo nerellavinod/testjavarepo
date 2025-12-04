@@ -1,10 +1,14 @@
-variable "tenant_id" {}
-variable "subscription_id" {}
-variable "client_id" {}
+variable "resource_group_name" {
+  type = string
+}
 
-variable "resource_group_name" { type = string }
-variable "location" { type = string }
-variable "app_service_name" { type = string }
+variable "location" {
+  type = string
+}
+
+variable "app_service_name" {
+  type = string
+}
 
 variable "address_space" {
   default = ["10.50.0.0/16"]
