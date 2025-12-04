@@ -1,19 +1,14 @@
-trigger:  
+trigger:
 - UiAngulatTest
 
 variables:
-  # Azure DevOps service connection (OIDC-based SPN)
   azureSubscription: 'TempAugserviceconnection1'
-
-  # Subscription / Resource Group / Storage
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
+
   resourceGroupName: 'TempAugRG'
   location: 'uksouth'
-
-  # App Service
   webAppName: 'hmnao-ui-app'
 
-  # Terraform backend config
   TF_STORAGE_ACCOUNT: 'tempaugstorage'
   TF_STORAGE_CONTAINER: 'tfstate'
 
@@ -43,7 +38,8 @@ stages:
         terraform -version
       displayName: "Install Terraform"
 
-    # Azure CLI login + Terraform Init/Plan/Apply
+
+    # Terraform init/plan/apply
     - task: AzureCLI@2
       displayName: "Terraform Init/Plan/Apply"
       inputs:
@@ -52,18 +48,21 @@ stages:
         scriptLocation: inlineScript
         addSpnToEnvironment: true
         inlineScript: |
-          #########################################
-          # IMPORTANT: PREVENT EARLY SCRIPT EXIT  #
-          #########################################
           set +e
 
-          WORKDIR="$(System.DefaultWorkingDirectory)/Deployment/src"
+          WORKDIR="$(Build.SourcesDirectory)/Deployment/src"
+
+          echo "=== WORKING DIRECTORY ==="
+          echo $WORKDIR
+
+          echo "=== LISTING TERRAFORM FILES ==="
+          ls -lah $WORKDIR
 
           echo "=== CLEAN OLD TERRAFORM CACHE ==="
           rm -rf $WORKDIR/.terraform
           rm -f $WORKDIR/.terraform.lock.hcl
 
-          echo "=== TERRAFORM INIT (FORCE RECONFIGURE) ==="
+          echo "=== TERRAFORM INIT ==="
           terraform -chdir=$WORKDIR init -reconfigure \
             -backend-config="resource_group_name=$(resourceGroupName)" \
             -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
@@ -87,7 +86,7 @@ stages:
 # 2️⃣ DEPLOY ANGULAR SSR APP
 # ============================================================
 - stage: Deploy
-  displayName: "Deploy Angular SSR App"
+  displayName: "Deploy UI App"
   dependsOn: IaC
   jobs:
   - template: Deployment/templates/continuous-deployment.yml
