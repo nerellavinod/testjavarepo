@@ -139,7 +139,7 @@ stages:
 
 - stage: IaC
   displayName: Provision/Update Landing Zone Infra with Terraform
-  dependsOn: BuildTestPublish
+  #dependsOn: BuildTestPublish
   jobs:
   - job: Terraform
     pool:
