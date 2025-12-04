@@ -146,40 +146,30 @@ stages:
       vmImage: 'ubuntu-latest'
     steps:
       - checkout: self
-      - task: Terraform@1
-        displayName: 'Install and Use Terraform CLI'
-        inputs:
-          provider: 'azurerm'
-          command: 'init'
-          workingDirectory: 'Deployment/src'
-          backendServiceArm: $(azureSubscription)
-          backendAzureRmResourceGroupName: $(resourceGroupName)
-          backendAzureRmStorageAccountName: $(TF_STORAGE_ACCOUNT)
-          backendAzureRmContainerName: $(TF_STORAGE_CONTAINER)
-          backendAzureRmKey: 'terraform.tfstate'
-      - task: Terraform@1
+      - script: |
+          curl -sLo terraform.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
+          unzip terraform.zip
+          sudo mv terraform /usr/local/bin/
+        displayName: 'Install Terraform CLI'
+      - script: |
+          cd Deployment/src
+          terraform --version
+          terraform init -backend-config="resource_group_name=$(resourceGroupName)" \
+                         -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
+                         -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
+                         -backend-config="key=terraform.tfstate"
+        displayName: 'Terraform Init'
+      - script: |
+          cd Deployment/src
+          terraform plan -var "key_vault_name=$(TF_KEY_VAULT)" \
+                         -var "app_service_name=$(webAppName)"
         displayName: 'Terraform Plan'
-        inputs:
-          provider: 'azurerm'
-          command: 'plan'
-          workingDirectory: 'Deployment/src'
-          environmentServiceNameAzureRM: $(azureSubscription)
-          vars: |
-            key_vault_name=$(TF_KEY_VAULT)
-            app_service_name=$(webAppName)
-      - task: Terraform@1
+      - script: |
+          cd Deployment/src
+          terraform apply -auto-approve \
+            -var "key_vault_name=$(TF_KEY_VAULT)" \
+            -var "app_service_name=$(webAppName)"
         displayName: 'Terraform Apply'
-        inputs:
-          provider: 'azurerm'
-          command: 'apply'
-          workingDirectory: 'Deployment/src'
-          environmentServiceNameAzureRM: $(azureSubscription)
-          vars: |
-            key_vault_name=$(TF_KEY_VAULT)
-            app_service_name=$(webAppName)
-          ensureBackend: true
-          allowTelemetryCollection: false
-          autoApprove: true
         env:
           ARM_CLIENT_ID: $(ARM_CLIENT_ID)
         # Managed Identity from service connection
