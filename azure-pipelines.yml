@@ -40,8 +40,7 @@ stages:
     - task: AzureCLI@2
       displayName: "Terraform Init/Plan/Apply (OIDC Auth)"
       inputs:
-        azureSubscription: $(azureSubscription)
-        azureSubscription: 'TempAugserviceconnection1'
+        azureSubscription: $(azureSubscription)        
         ARM_CLIENT_ID: '26533ce6-9d6c-413b-b4bd-7847aab1f2a2'
         ARM_TENANT_ID: 'add1c500-a6d7-4dbd-b890-7f8cb6f7d861'
         ARM_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
