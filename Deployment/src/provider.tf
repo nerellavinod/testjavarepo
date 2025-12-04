@@ -7,12 +7,13 @@ terraform {
 provider "azurerm" {
   features {}
 
-  # LOCAL: az login
-  use_cli = true
+  # LOCAL MACHINE (VS Code)
+  # Terraform automatically uses az login
+  skip_provider_registration = false
 
-  # PIPELINE: User Managed Identity
+  # AZURE DEVOPS (Managed Identity)
   use_msi         = true
   client_id       = var.client_id
-  tenant_id       = var.tenant_id
   subscription_id = var.subscription_id
+  tenant_id       = var.tenant_id
 }
