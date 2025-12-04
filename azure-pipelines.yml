@@ -2,10 +2,10 @@ trigger:
 - UiAngulatTest
 
 variables:
-  # Use the new Azure DevOps service connection (OIDC-based SPN)
+  # Azure DevOps service connection (OIDC-based SPN)
   azureSubscription: 'TempAugserviceconnection1'
 
-  # Subscription / RG / Storage
+  # Subscription / Resource Group / Storage
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
   resourceGroupName: 'TempAugRG'
   location: 'uksouth'
@@ -43,30 +43,36 @@ stages:
         terraform -version
       displayName: "Install Terraform"
 
-    # Use AzureCLI@2 for login + Terraform Init/Plan/Apply
+    # Azure CLI login + Terraform Init/Plan/Apply
     - task: AzureCLI@2
       displayName: "Terraform Init/Plan/Apply"
       inputs:
         azureSubscription: $(azureSubscription)
         scriptType: bash
         scriptLocation: inlineScript
-        addSpnToEnvironment: true   # exposes ARM_CLIENT_ID / ARM_TENANT_ID / ARM_SUBSCRIPTION_ID / ARM_CLIENT_SECRET
+        addSpnToEnvironment: true
         inlineScript: |
-          echo "=== Terraform init ==="
-          terraform -chdir=$(System.DefaultWorkingDirectory)/Deployment/src init -reconfigure \
+          WORKDIR="$(System.DefaultWorkingDirectory)/Deployment/src"
+
+          echo "=== CLEAN OLD TERRAFORM CACHE ==="
+          rm -rf $WORKDIR/.terraform
+          rm -f $WORKDIR/.terraform.lock.hcl
+
+          echo "=== TERRAFORM INIT (FORCE RECONFIGURE) ==="
+          terraform -chdir=$WORKDIR init -reconfigure \
             -backend-config="resource_group_name=$(resourceGroupName)" \
             -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
             -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
             -backend-config="key=hmnao.tfstate"
 
-          echo "=== Terraform plan ==="
-          terraform -chdir=$(System.DefaultWorkingDirectory)/Deployment/src plan \
+          echo "=== TERRAFORM PLAN ==="
+          terraform -chdir=$WORKDIR plan \
             -var "resource_group_name=$(resourceGroupName)" \
             -var "location=$(location)" \
             -var "app_service_name=$(webAppName)"
 
-          echo "=== Terraform apply ==="
-          terraform -chdir=$(System.DefaultWorkingDirectory)/Deployment/src apply -auto-approve \
+          echo "=== TERRAFORM APPLY ==="
+          terraform -chdir=$WORKDIR apply -auto-approve \
             -var "resource_group_name=$(resourceGroupName)" \
             -var "location=$(location)" \
             -var "app_service_name=$(webAppName)"
