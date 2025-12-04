@@ -33,3 +33,5 @@ jobs:
         runtimeStack: 'NODE|20-lts'
         startUpCommand: 'npm install --omit=dev && node server/server.mjs'
       displayName: 'Deploy Angular SSR App to Azure Web App'
+      # Ensure App Service is VNet integrated and only accessible via private endpoint (configured in Terraform)
+      # No library variables used; secrets fetched from Key Vault if needed

@@ -30,7 +30,9 @@ variables:
   resourceGroupName: 'tempaugrg'
   webAppName: 'Uiangularwebapp'
   NodeVersion: 20.x
-  snykOrgID: '<YOUR_SNYK_ORG_ID_IF_NEEDED>'
+  TF_KEY_VAULT: '<your-landingzone-keyvault>'
+  TF_STORAGE_ACCOUNT: '<your-landingzone-storageaccount>'
+  TF_STORAGE_CONTAINER: '<your-tfstate-container>'
   BuildCounter: $[counter(format('{0:yyyyMMdd}', pipeline.startTime), 1)]
 
 stages:
@@ -135,11 +137,46 @@ stages:
         pathToPublish: '$(Build.ArtifactStagingDirectory)/angularapp.zip'
         artifactName: AngularApp
 
+- stage: IaC
+  displayName: Provision/Update Landing Zone Infra with Terraform
+  dependsOn: BuildTestPublish
+  jobs:
+  - job: Terraform
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+      - checkout: self
+      - task: TerraformInstaller@0
+        inputs:
+          terraformVersion: 'latest'
+      - script: |
+          cd Deployment/src
+          terraform init -backend-config="resource_group_name=$(resourceGroupName)" \
+                         -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
+                         -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
+                         -backend-config="key=terraform.tfstate"
+          terraform plan -var "key_vault_name=$(TF_KEY_VAULT)" \
+                         -var "app_service_name=$(webAppName)"
+          terraform apply -auto-approve \
+            -var "key_vault_name=$(TF_KEY_VAULT)" \
+            -var "app_service_name=$(webAppName)"
+        env:
+          ARM_CLIENT_ID: $(ARM_CLIENT_ID) # managed identity from service connection
+        displayName: 'Terraform: Provision Landing Zone Infra'
+
 - stage: Deploy
   displayName: Deploy to Azure Web App
-  dependsOn: BuildTestPublish
+  dependsOn: IaC
   jobs:
   - template: Deployment/templates/continuous-deployment.yml
     parameters:
       azureSubscription: ${{ variables.azureSubscription }}
       webAppName: ${{ variables.webAppName }}
+    steps:
+      - task: AzureKeyVault@2
+        inputs:
+          connectedServiceName: ${{ variables.azureSubscription }}
+          keyVaultName: $(TF_KEY_VAULT)
+          secretsFilter: '*'
+        displayName: 'Fetch secrets from Key Vault (private endpoint)'
+      # ...existing deployment steps...
