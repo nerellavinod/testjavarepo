@@ -147,10 +147,8 @@ stages:
     steps:
       - checkout: self
       - script: |
-          curl -sLo terraform.zip https://releases.hashicorp.com/terraform/1.7.5/terraform_1.7.5_linux_amd64.zip
-          unzip terraform.zip
-          sudo mv terraform /usr/local/bin/
-        displayName: 'Install Terraform CLI'
+          az login
+        displayName: 'Azure CLI Login (interactive, for self-hosted agent)'
       - script: |
           cd Deployment/src
           terraform --version
@@ -170,9 +168,6 @@ stages:
             -var "key_vault_name=$(TF_KEY_VAULT)" \
             -var "app_service_name=$(webAppName)"
         displayName: 'Terraform Apply'
-        env:
-          ARM_CLIENT_ID: $(ARM_CLIENT_ID)
-        # Managed Identity from service connection
 
 - stage: Deploy
   displayName: Deploy to Azure Web App
