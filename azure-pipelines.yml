@@ -3,17 +3,16 @@ trigger:
 
 variables:
   azureSubscription: 'TempAugserviceconnection1'
+
+  # Resource details
   resourceGroupName: 'TempAugRG'
   location: 'uksouth'
   webAppName: 'hmnao-ui-app'
-  TF_STORAGE_ACCOUNT: 'tempaugstorage'
-  TF_STORAGE_CONTAINER: 'tfstate'
-
 
 stages:
 
 # ============================================================
-# 1️⃣ TERRAFORM INFRA DEPLOYMENT
+# 1️⃣ TERRAFORM INFRA DEPLOYMENT (OIDC AUTH)
 # ============================================================
 - stage: IaC
   displayName: "Provision Infra using Terraform"
@@ -35,34 +34,33 @@ stages:
         terraform -version
       displayName: "Install Terraform"
 
-
-    # Terraform init/plan/apply
     - task: AzureCLI@2
-      displayName: "Terraform Init/Plan/Apply"
+      displayName: "Terraform Init/Plan/Apply (OIDC Auth)"
       inputs:
         azureSubscription: $(azureSubscription)
         scriptType: bash
         scriptLocation: inlineScript
         addSpnToEnvironment: true
+        useGlobalConfig: false
         inlineScript: |
+
           set -e
 
           WORKDIR="$(Build.SourcesDirectory)/Deployment/src"
 
-          echo "=== Export ARM Credentials for Terraform ==="
-          export ARM_CLIENT_ID=$servicePrincipalId
-          export ARM_CLIENT_SECRET=$servicePrincipalKey
-          export ARM_TENANT_ID=$tenantId
-          export ARM_SUBSCRIPTION_ID=$subscriptionId
+          echo "=== Export OIDC Credentials for Terraform ==="
+          export ARM_CLIENT_ID=$AZURE_CLIENT_ID
+          export ARM_TENANT_ID=$AZURE_TENANT_ID
+          export ARM_SUBSCRIPTION_ID=$AZURE_SUBSCRIPTION_ID
+          export ARM_USE_OIDC=true
 
           echo "ARM_CLIENT_ID=$ARM_CLIENT_ID"
           echo "ARM_TENANT_ID=$ARM_TENANT_ID"
           echo "ARM_SUBSCRIPTION_ID=$ARM_SUBSCRIPTION_ID"
-          # Not printing secret by design
 
           echo "=== CLEAN TERRAFORM CACHE ==="
           rm -rf $WORKDIR/.terraform
-          rm -f  $WORKDIR/.terraform.lock.hcl
+          rm -f $WORKDIR/.terraform.lock.hcl
 
           echo "=== TERRAFORM INIT ==="
           terraform -chdir=$WORKDIR init -reconfigure
@@ -79,9 +77,8 @@ stages:
             -var "location=$(location)" \
             -var "app_service_name=$(webAppName)"
 
-
 # ============================================================
-# 2️⃣ DEPLOY ANGULAR SSR APP
+# 2️⃣ DEPLOY ANGULAR APP
 # ============================================================
 - stage: Deploy
   displayName: "Deploy UI App"
