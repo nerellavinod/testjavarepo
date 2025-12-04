@@ -2,16 +2,21 @@ trigger:
 - UiAngulatTest
 
 variables:
-  azureSubscription: 'TempAugserviceconnection1'   # use the new connection
-  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
-  ARM_TENANT_ID: 'add1c500-a6d7-4dbd-b890-7f8cb67d7861'
+  # Use the new Azure DevOps service connection (OIDC-based SPN)
+  azureSubscription: 'TempAugserviceconnection1'
 
-  # Resource Names
+  # Subscription / RG / Storage
+  AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
   resourceGroupName: 'TempAugRG'
   location: 'uksouth'
+
+  # App Service
   webAppName: 'hmnao-ui-app'
+
+  # Terraform backend config
   TF_STORAGE_ACCOUNT: 'tempaugstorage'
   TF_STORAGE_CONTAINER: 'tfstate'
+
 
 stages:
 
@@ -38,39 +43,37 @@ stages:
         terraform -version
       displayName: "Install Terraform"
 
-    # 🔐 Login to Azure using the service connection (SPN / OIDC)
-    # and expose credentials as ARM_* env vars for Terraform
+    # Use AzureCLI@2 for login + Terraform Init/Plan/Apply
     - task: AzureCLI@2
       displayName: "Terraform Init/Plan/Apply"
       inputs:
         azureSubscription: $(azureSubscription)
         scriptType: bash
         scriptLocation: inlineScript
-        addSpnToEnvironment: true
+        addSpnToEnvironment: true   # exposes ARM_CLIENT_ID / ARM_TENANT_ID / ARM_SUBSCRIPTION_ID / ARM_CLIENT_SECRET
         inlineScript: |
-          cd Deployment/src
-
           echo "=== Terraform init ==="
-          terraform init \
+          terraform -chdir=$(System.DefaultWorkingDirectory)/Deployment/src init \
             -backend-config="resource_group_name=$(resourceGroupName)" \
             -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
             -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
             -backend-config="key=hmnao.tfstate"
 
           echo "=== Terraform plan ==="
-          terraform plan \
+          terraform -chdir=$(System.DefaultWorkingDirectory)/Deployment/src plan \
             -var "resource_group_name=$(resourceGroupName)" \
             -var "location=$(location)" \
             -var "app_service_name=$(webAppName)"
 
           echo "=== Terraform apply ==="
-          terraform apply -auto-approve \
+          terraform -chdir=$(System.DefaultWorkingDirectory)/Deployment/src apply -auto-approve \
             -var "resource_group_name=$(resourceGroupName)" \
             -var "location=$(location)" \
             -var "app_service_name=$(webAppName)"
 
+
 # ============================================================
-# 2️⃣ DEPLOY ANGULAR APP TO WEB APP
+# 2️⃣ DEPLOY ANGULAR SSR APP
 # ============================================================
 - stage: Deploy
   displayName: "Deploy Angular SSR App"
