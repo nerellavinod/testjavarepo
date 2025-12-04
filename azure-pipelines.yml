@@ -146,23 +146,43 @@ stages:
       vmImage: 'ubuntu-latest'
     steps:
       - checkout: self
-      - task: TerraformInstaller@0
+      - task: Terraform@1
+        displayName: 'Install and Use Terraform CLI'
         inputs:
-          terraformVersion: 'latest'
-      - script: |
-          cd Deployment/src
-          terraform init -backend-config="resource_group_name=$(resourceGroupName)" \
-                         -backend-config="storage_account_name=$(TF_STORAGE_ACCOUNT)" \
-                         -backend-config="container_name=$(TF_STORAGE_CONTAINER)" \
-                         -backend-config="key=terraform.tfstate"
-          terraform plan -var "key_vault_name=$(TF_KEY_VAULT)" \
-                         -var "app_service_name=$(webAppName)"
-          terraform apply -auto-approve \
-            -var "key_vault_name=$(TF_KEY_VAULT)" \
-            -var "app_service_name=$(webAppName)"
+          provider: 'azurerm'
+          command: 'init'
+          workingDirectory: 'Deployment/src'
+          backendServiceArm: $(azureSubscription)
+          backendAzureRmResourceGroupName: $(resourceGroupName)
+          backendAzureRmStorageAccountName: $(TF_STORAGE_ACCOUNT)
+          backendAzureRmContainerName: $(TF_STORAGE_CONTAINER)
+          backendAzureRmKey: 'terraform.tfstate'
+      - task: Terraform@1
+        displayName: 'Terraform Plan'
+        inputs:
+          provider: 'azurerm'
+          command: 'plan'
+          workingDirectory: 'Deployment/src'
+          environmentServiceNameAzureRM: $(azureSubscription)
+          vars: |
+            key_vault_name=$(TF_KEY_VAULT)
+            app_service_name=$(webAppName)
+      - task: Terraform@1
+        displayName: 'Terraform Apply'
+        inputs:
+          provider: 'azurerm'
+          command: 'apply'
+          workingDirectory: 'Deployment/src'
+          environmentServiceNameAzureRM: $(azureSubscription)
+          vars: |
+            key_vault_name=$(TF_KEY_VAULT)
+            app_service_name=$(webAppName)
+          ensureBackend: true
+          allowTelemetryCollection: false
+          autoApprove: true
         env:
-          ARM_CLIENT_ID: $(ARM_CLIENT_ID) # managed identity from service connection
-        displayName: 'Terraform: Provision Landing Zone Infra'
+          ARM_CLIENT_ID: $(ARM_CLIENT_ID)
+        # Managed Identity from service connection
 
 - stage: Deploy
   displayName: Deploy to Azure Web App
