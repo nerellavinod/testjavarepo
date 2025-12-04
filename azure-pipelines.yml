@@ -2,7 +2,7 @@ trigger:
 - UiAngulatTest
 
 variables:
-  azureSubscription: 'TempAugserviceconnection'
+  azureSubscription: 'TempAugserviceconnection1'
   AZURE_SUBSCRIPTION_ID: 'c3d246d3-988a-45ae-ba70-f7faac1e2d0a'
 
   # Managed Identity (UAMI)
